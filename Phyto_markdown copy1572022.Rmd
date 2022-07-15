@@ -26,12 +26,6 @@ library(fpp2)
 library(data.table)
 ```
 
-### Load data 
-
-```{r}
-Phyto_AWQC <- read.csv(Phyto_AWQC.csv)
-Phyto_ALS <- read.csv(Phyto_ALS.csv)
-```
 
 
 ### Data-fixing
