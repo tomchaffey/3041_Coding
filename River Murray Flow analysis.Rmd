@@ -142,6 +142,5 @@ dygraph(anabaena_lock9.xts, main = "Anabaena Cell Count at Lock 9", ylab = "Cell
 ```
 
 ```{r}
-dygraph(lock9.xts, anabaena_lock9.xts)
 ```
 
