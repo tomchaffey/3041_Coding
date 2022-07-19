@@ -60,7 +60,23 @@ lock9_arimax1$`#Timestamp` %>%
 
 We now have a df for discharge which extend from both the start of our anabaena set to the end of our anabaena set (1997 - 2018). However, our anabaena set includes cellcounts for all reported taxa within the classificiation Anabaena, which range from genus to species, so we often see multiple cell counts on the same day, not sure if this is a problem yet, if necessary, I can only take unique dates from Anabaena to have to df of the same length. 
 
-```{r}
 
+### Comparative ts plots for both
+Given we have ts of equal time length for both, lets take a look and see if theres any correlations. 
+```{r}
+l9_xts <- xts(lock9_arimax1$Value, order.by = lock9_arimax1$`#Timestamp`)
+
+ab.xts <- xts(anabaena_arimax$CELLCOUNT, order.by = anabaena_arimax$Date_Sampled)
+
+dygraph(l9_xts, main = "Lock 9 Discharge", ylab = "Discharge [cumec]")
+
+dygraph(ab.xts, main = "Anabaena Abundance at Lock 9", ylab = "Cell Count [per mL]")
+```
+No expert, but if i had to guess, looks like there needs to be a long period of low discharge for there to be a cyaono-bacteria bloom. But thats what modelling is for. 
+
+Lets now subset the Lock 9 discharge to get one reading per week, which we can then combine with our Anabaena df to run ARIMAX. 
+
+```{r}
+lock9_arimax2 <- lock9_arimax1 %>% group_by(week = week(`#Timestamp`))
 ```
 
