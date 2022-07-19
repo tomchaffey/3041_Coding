@@ -30,7 +30,7 @@ library(fable)
 ### Load data
 
 ```{r}
-Phyto_AWQC <- read.csv(file = 'PMP Data/"Phyto_AWQC.csv')
+Phyto_AWQC <- read_csv("PMP Data/Phyto_AWQC_FIXED.csv")
 ```
 
 ### Data-fixing
