@@ -13,7 +13,7 @@ This is a part 2 to what we've done prior, we know now that phytoplankton abunda
 
 Same as last time. 
 
-```{r}
+```{r, include=FALSE}
 library(tidyverse)
 library(ggplot2)
 library(dplyr)
@@ -31,7 +31,7 @@ library(xts)
 
 ### Loading our data
 
-```{r}
+```{r, include=FALSE}
 discharge.files <- list.files("Murray_Discharge/")
 
 BALRANALD <- read_csv("Murray_Discharge/BALRANALD.csv")
@@ -46,7 +46,7 @@ YARRAWONGA<- read_csv("Murray_Discharge/YARRAWONGA.csv")
 ```
 
 Mutating files to incl. site name. 
-```{r}
+```{r, include=FALSE}
 BALRANALD <- BALRANALD %>%
   mutate(Site = "BALRANALD")
 
@@ -73,7 +73,7 @@ YARRAWONGA <- YARRAWONGA %>%
 ```
 
 Binding them together for ease of analysis 
-```{r}
+```{r, include=FALSE}
 discharge_all <- bind_rows(
   BALRANALD, BURTUNDY, HEYWOODS, LOCK_9, MERBEIN, MORGAN, SWAN_HILL, YARRAWONGA
 )
@@ -85,18 +85,13 @@ str(discharge_all)
 
 ### Cleaning Data
 ```{r}
-discharge_all <- discharge_all %>%
+discharge1 <- discharge_all %>%
   select(-`Quality Code`)
-```
 
-```{r}
-discharge_all <- discharge_all %>%
+discharge2 <- discharge1 %>%
   select(-'Interpolation Type')
-```
 
-
-```{r}
-discharge.df <- discharge_all %>%
+discharge.df <- discharge2 %>%
   drop_na(Value)
 ```
 
