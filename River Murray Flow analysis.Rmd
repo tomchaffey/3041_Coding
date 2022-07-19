@@ -137,5 +137,17 @@ dygraph(anabaena_lock9.xts, main = "Anabaena Cell Count at Lock 9", ylab = "Cell
 ```
 
 ```{r}
+for (i in length(unique(discharge_all$Site))){
+  xts(discharge_all$Value, order.by = discharge_all$`#Timestamp`) %>%
+  dygraph()
+}
+```
+
+
+
+```{r}
+for (i in length(unique(discharge_all$Site))){
+  xts(discharge_all$Value, order.by = discharge_all$`#Timestamp`) <- paste0(i,"xts")
+}
 ```
 
