@@ -24,9 +24,14 @@ library(lubridate)
 library(linelist)
 library(fpp2)
 library(data.table)
+library(fable)
 ```
 
+### Load data
 
+```{r}
+Phyto_AWQC <- read.csv(file = 'PMP Data/"Phyto_AWQC.csv')
+```
 
 ### Data-fixing
 
@@ -244,8 +249,9 @@ autoplot(forecast(fit))
 ```
 
 ```{r}
-auto.fit <- auto.arima(as.ts(algae2))
+auto.fit <- auto.arima(as.ts(algae2), lambda = 0)
 
+checkresiduals(auto.fit)
 plot(forecast(auto.fit))
 
 #same deal, just using the auto.arima function instead of the standard ARIMA function where parameters must be named, this just automatically fits what it thinks works best. N.B this looks different from an early plot for algae cell count at lock 9, which scaled the y axis, while this remains unscaled. Try forecasting using logged cell counts for better results???
@@ -255,25 +261,18 @@ plot(forecast(auto.fit))
 Lets see how this works with Anabaena 
 
 ```{r}
+anabaena %>% 
+  group_by(SITENAME) %>%
+  summarise(count = n())
+
 anabaena$Date_Sampled %>%
   max()
 
 anabaena$Date_Sampled %>%
   min()
 
-# nearly 20 years of reporting 
-```
-
-
-```{r}
-anabaena %>% 
-  group_by(SITENAME) %>%
-  summarise(count = n())
-
 # Again lock 9 is the most numerous, use it again. 
-```
 
-```{r}
 anabaena_lock9 <- anabaena %>%
   filter(SITENAME =="LOCK 9")
 
@@ -285,13 +284,24 @@ Now running an arima
 anabaena_ts <- anabaena_lock9 %>%
   select(CELLCOUNT)
 
-anabaena_arima <- auto.arima(as.ts(anabaena_ts))
+anabaena_arima <- auto.arima(as.ts(anabaena_ts), lambda = 0)
 
 checkresiduals(anabaena_arima)
 
 plot(forecast(anabaena_arima))
 ```
 
+
+```{r}
+anabaena.model <- Arima(
+  window(as.ts(anabaena_ts), end = 2012), order =c(0,1,1),
+  seasonal = list(order=c(0,1,1), period = 12), lambda = 0)
+
+plot(forecast(anabaena.model, h =52))
+
+# trying to add parameters to hand-done arima to inc accuracy of model, difficult not sure how it works quite yet. 
+```
+ 
 
 ### Loops
 To extract our major taxa for analysis as per MDFRC (2011), including: 
@@ -304,8 +314,6 @@ To extract our major taxa for analysis as per MDFRC (2011), including:
  - Actinastrum 
  - Ankistrodesmus
  - Cryptohyceae
-
-
 
 
 
