@@ -122,3 +122,26 @@ dygraph(balranald.xts, main = "Balranald Downstream Flow", ylab = "Water Dischar
 ```
 
 
+### Combining phytoplankton data and flow data 
+
+We've now got data that is workable for both phyt abundance as a ts and river gauge height (discharge) as a time series. We can now try combine the two (only visually so far, modelling comes after). 
+
+```{r}
+lock9.xts <- xts(LOCK_9$Value, order.by = LOCK_9$`#Timestamp`)
+
+dygraph(lock9.xts, main = "Lock 9 Discharge", ylab = "Water Discharge [cumec]")
+```
+Our lock 9 discharge data extends back to the 1970's which is great. 
+
+Lets look at phyto for lock 9 now. We will use the xts function for this as well so we can combine the two visually. 
+
+```{r}
+anabaena_lock9.xts <- xts(anabaena_lock9$CELLCOUNT, order.by = anabaena_lock9$Date_Sampled)
+
+dygraph(anabaena_lock9.xts, main = "Anabaena Cell Count at Lock 9", ylab = "Cell Count (u/mL)")
+```
+
+```{r}
+dygraph(lock9.xts, anabaena_lock9.xts)
+```
+
