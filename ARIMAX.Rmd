@@ -4,7 +4,7 @@ author: "tomchaffey"
 date: "`r Sys.Date()`"
 output: html_document
 ---
-# Utilisinf ARIMAX modelling
+# Utilising ARIMAX modelling
 
 ### Loading packages
 ```{r, include=FALSE}
@@ -16,7 +16,11 @@ library(dplyr)
 library(ggplot2)
 library(dygraphs)
 library(data.table)
+library(fpp2)
+library(urca)
 ```
+
+
 
 ### Arimax start
 We're going to pilot test ARIMAX here, or multifactorial ARIMA. We've already put together some time series for both phytoplankton abundance and river murray discharge. And, attempted ARIMA on phyto abundance to some success. Will have to combine both sets into one df, then go from there. 
@@ -126,27 +130,97 @@ anabaena_arimax1 %>% add_column(Value = NA, .after = 1)
 ```
 
 
-
-
 ```{r}
-setDT(t3)[anabaena_arimax1, c("Value", "CELLCOUNT") :=
-            .(Value, CELLCOUNT), on=c("Date_Sampled")]
-
-head(t3)
+aa <- full_join(t3, anabaena_arimax1)
 ```
 
 
 
 
 ```{r}
-require(data.table) # v1.9.5+
-setDT(df1)[df2, c("fiedl1", "field2") := 
-                .(field1, field2), on=c("id", "dates")]
-
-setDT(df1)
-setDT(df2)
-
-df2[df1, on = c('id','dates')]
+discharge.l9 <- lock9_arimax1 %>%
+  filter(`#Timestamp` >="1997-11-25") %>%
+  filter(`#Timestamp` <="2018-2-20")
 ```
 
+
+```{r}
+dcl9 <- rename(discharge.l9, "Date_Sampled" = "#Timestamp")
+```
+
+
+```{r}
+aa <- full_join(dcl9, anabaena_arimax1)
+head(aa)
+```
+
+
+```{r}
+aa1 <- aa %>%
+  drop_na(CELLCOUNT)
+
+str(aa1)
+```
+
+So, here was a roundabout way to solving the problem, rename the dates to match, full_join the data sets, and filter out cellcount NA's. Took a while ,idiot. 
+We've now got matching vector for both cellcount and discharge value and can being ARIMAX
+
+### Arimax for real this time
+
+Forecasting with ARIMAX is a bit more involved. We are now using Discharge value to predict or forecast our phytoplankton abundance. We can't just plug it in. We also have to calculate how our xreg (discharge) will change in the future first, and use that within our ARIMAX forecast. In this instance, we will try forecast through 1 year (52 time periods given data is 'mostly' weekly). 
+
+Changing out data into ts objects. 
+
+```{r}
+discharge.ts <- aa1 %>%
+  select(Value) %>%
+  as.ts(start = 1997, frequency = 52)
+
+ab.ts <- aa1 %>%
+  select(CELLCOUNT) %>%
+  as.ts(start = 1997, frequency = 52)
+```
+
+
+```{r}
+fit.aa <- auto.arima(ab.ts,
+                     xreg = discharge.ts)
+
+checkresiduals(fit.aa)
+
+```
+Calculating x regressors
+```{r}
+discharge.forecast <- discharge.ts %>%
+  mean() %>%
+  rep(52)
+
+discharge.forecast # this is the idea, meant to work 
+```
+
+```{r}
+fcast <- fit.aa %>%
+  forecast(xreg = discharge.forecast)
+
+fcast # this is the idea, yet to work 
+```
+
+Heres what Rob Hynderman says about forecast with x regressors. You have to create a training model with your xreg, and use it to predict. Will make heads and tails of it soon. 
+
+```{r}
+library(forecast)
+set.seed(1)
+stack_data <- ts(rnorm(100), start = 2000, frequency = 12)
+stack_data_xreg <- ts(rnorm(100), start = 2000, frequency = 12)
+
+farma <- function(y, h, xreg) {
+  ncol <- NCOL(xreg)
+  X <- matrix(xreg[seq_along(y), ], ncol = ncol)
+  if (NROW(xreg) < length(y) + h) {
+    stop("Not enough xreg data for forecasting")
+  }
+  newX <- matrix(xreg[length(y) + seq(h), ], ncol = ncol)
+  fit <- auto.arima(y, xreg = X)
+  forecast(fit, xreg = newX, h = h)
+```
 
