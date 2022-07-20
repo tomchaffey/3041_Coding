@@ -15,6 +15,7 @@ library(xts)
 library(dplyr)
 library(ggplot2)
 library(dygraphs)
+library(data.table)
 ```
 
 ### Arimax start
@@ -87,3 +88,65 @@ t3 <- t2 %>%
 ```
 
 We now have week average discharge data for Lock 9, to compare against our weekly data for phytoplankton abundance. Perfect. 
+
+```{r}
+lock9.ts <- ts(t2$Value, frequency = 52)
+anabaena.ts <- ts(anabaena_arimax$CELLCOUNT)
+
+plot(lock9.ts)
+plot(anabaena.ts)
+```
+Looks alright, continuing. Lets combine. 
+
+Initial problem, while both sets are in Weeks, our anabaena data set extends over multiple taxa, meaning we have a range of Cellcounts of the same day, sometimes 1, sometimes 3. 
+
+Run distinct on anabaena to match data sets. N.B. dont know if this is cool to do or not... 
+
+```{r}
+anabaena_arimax1 <- anabaena_arimax %>%
+  group_by(Date_Sampled) %>%
+  summarise_if(is.numeric, sum)
+```
+This sums data over the week if there are multiple reported taxa in the same period. 
+
+Problem x: anabaena data is not weekly, didn't realise until.. now. 
+
+Try indexing the sets to match?
+```{r}
+t3 <- rename(t3, "Date_Sampled" = "week")
+
+
+
+```
+
+```{r}
+t3 %>% add_column(CELLCOUNT = NA, .after = 2)
+
+anabaena_arimax1 %>% add_column(Value = NA, .after = 1)
+```
+
+
+
+
+```{r}
+setDT(t3)[anabaena_arimax1, c("Value", "CELLCOUNT") :=
+            .(Value, CELLCOUNT), on=c("Date_Sampled")]
+
+head(t3)
+```
+
+
+
+
+```{r}
+require(data.table) # v1.9.5+
+setDT(df1)[df2, c("fiedl1", "field2") := 
+                .(field1, field2), on=c("id", "dates")]
+
+setDT(df1)
+setDT(df2)
+
+df2[df1, on = c('id','dates')]
+```
+
+
