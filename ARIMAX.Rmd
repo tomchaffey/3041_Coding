@@ -222,5 +222,30 @@ farma <- function(y, h, xreg) {
   newX <- matrix(xreg[length(y) + seq(h), ], ncol = ncol)
   fit <- auto.arima(y, xreg = X)
   forecast(fit, xreg = newX, h = h)
+}
+
+# this is the rob hyndaman example
 ```
 
+```{r}
+  farma <- function(ab.ts, h, discharge.ts) {
+    ncol <- NCOL(discharge.ts)
+    X <- matrix(xreg[seq_along(ab.ts), ], ncol = ncol)
+    if (NROW(discharge.ts) < length(ab.ts) + h) {
+      stop("Not enough xreg data")
+    }
+    newX <- matrix(discharge.ts[length(ab.ts) +seq(h), ], ncol = ncol)
+    fit<- auto.arima(ab.ts, xreg = X)
+    forecast(fit, xreg = newX, h = h)
+  }
+```
+
+
+
+```{r}
+plot(forecast(fit))
+
+checkresiduals(fit)
+```
+Holy shit i think that worked. Thankyou rob hyndaman. T
+he ljung-box test indicates autocorrelation of ts, essentially, are residuals independtly distributed (H0) or are they serially correlated. Our p value returned <0.01, indicated there is serial correlation between discharge and phyt abundance (just for lock 9 and anabaena). 
