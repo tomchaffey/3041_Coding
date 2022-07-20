@@ -18,6 +18,7 @@ library(dygraphs)
 library(data.table)
 library(fpp2)
 library(urca)
+library(TSPred)
 ```
 
 
@@ -189,21 +190,6 @@ fit.aa <- auto.arima(ab.ts,
 checkresiduals(fit.aa)
 
 ```
-Calculating x regressors
-```{r}
-discharge.forecast <- discharge.ts %>%
-  mean() %>%
-  rep(52)
-
-discharge.forecast # this is the idea, meant to work 
-```
-
-```{r}
-fcast <- fit.aa %>%
-  forecast(xreg = discharge.forecast)
-
-fcast # this is the idea, yet to work 
-```
 
 Heres what Rob Hynderman says about forecast with x regressors. You have to create a training model with your xreg, and use it to predict. Will make heads and tails of it soon. 
 
@@ -236,7 +222,7 @@ farma <- function(y, h, xreg) {
     }
     newX <- matrix(discharge.ts[length(ab.ts) +seq(h), ], ncol = ncol)
     fit<- auto.arima(ab.ts, xreg = X)
-    forecast(fit, xreg = newX, h = h)
+    forecast(fit, xreg = newX, h = 52)
   }
 ```
 
@@ -249,3 +235,17 @@ checkresiduals(fit)
 ```
 Holy shit i think that worked. Thankyou rob hyndaman. T
 he ljung-box test indicates autocorrelation of ts, essentially, are residuals independtly distributed (H0) or are they serially correlated. Our p value returned <0.01, indicated there is serial correlation between discharge and phyt abundance (just for lock 9 and anabaena). 
+
+N.B. You can compare this forecast using xreg of discharge to just the anabaena forecast seen in Phytoplankton_abundance.rmd and see that they are different, which, cool i guess. Shows something is happening. 
+
+UPDATE: Its predictive ability seems limited or something is off I can't tell yet. Cellcounts around 400-600 are much, much, higher than observed. While the spike at ~380 matches alright. Not sure whats going on yet. 
+
+```{r}
+ts.plot(fit, anabaena.ts, 
+        gpars = list(xlab = "year", ylab="Cellcount"))
+```
+
+```{r}
+plotarimapred(ab.ts, fit, xlim = c(400, 650), range.percent = 1)
+```
+
