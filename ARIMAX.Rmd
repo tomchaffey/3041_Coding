@@ -76,30 +76,14 @@ No expert, but if i had to guess, looks like there needs to be a long period of 
 
 Lets now subset the Lock 9 discharge to get one reading per week, which we can then combine with our Anabaena df to run ARIMAX. 
 
-```{r}
-lock9_arimax2$`#Timestamp <- ceiling_date(lock9_arimax1$`#Timestamp`, "week")
 
-
-```
-
-```{r}
-df %>%
-  mutate(date = dmy(date)) %>% 
-  arrange(date) %>% 
-  mutate(id = 0:(nrow(df) - 1), week = id %/% 7) %>%
-  group_by(week) %>% 
-  summarize(date = max(date), across(A:B, sum))
-```
-
-```{r}
-lock9_arimax1 %>%
-  arrange(`#Timestamp`) %>%
-  mutate(id = 0:(nrow(lock9_arimax1) -1), week = id %/% 7) %>%
-  group_by(week) %>%
-  summarise(date = max(`#Timestamp`, across))
-```
 ```{r}
 t1 <- lock9_arimax1 %>%
-  group_by(date = ceiling_date(ymd(`#Timestamp`), 'week', week_start =1))
+  mutate(week = floor_date(`#Timestamp`, "week"))
+
+t3 <- t2 %>% 
+  group_by(week) %>% 
+  summarise_if(is.numeric, mean)
 ```
 
+We now have week average discharge data for Lock 9, to compare against our weekly data for phytoplankton abundance. Perfect. 
