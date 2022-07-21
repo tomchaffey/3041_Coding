@@ -4,17 +4,19 @@ author: "tomchaffey"
 date: "`r Sys.Date()`"
 output: html_document
 ---
+
 # Discharge and Phytoplankton Combined
 
-
-While we've made good progress looking at both individually, and pilot tested a semi-working ARIMAX, its time to bring it all together and start zooming out. We're going to be using this markdown just to extract everything we need in a clean way, for posterity. 
+While we've made good progress looking at both individually, and pilot tested a semi-working ARIMAX, its time to bring it all together and start zooming out. We're going to be using this markdown just to extract everything we need in a clean way, for posterity.
 
 ### Loading Packages
-```{r}
+
+```{r, include=FALSE}
 library(tidyverse)
 library(dplyr)
 library(lubridate)
 library(data.table)
+library(arsenal)
 ```
 
 ### Extracting data
@@ -50,12 +52,6 @@ MERBEIN<- read_csv("Murray_Discharge/MERBEIN.csv")
     rename("MERBEIN" = "Value") %>%
     select("Date_Sampled", "MERBEIN")
    
-MORGAN<- read_csv("Murray_Discharge/MORGAN.csv")
-  MORGAN <- MORGAN %>%
-   rename("Date_Sampled" = "#Timestamp") %>%
-    rename("MORGAN" = "Value") %>%
-    select("Date_Sampled", "MORGAN")
-   
 SWAN_HILL<- read_csv("Murray_Discharge/SWAN_HILL.csv")
   SWAN_HILL<- SWAN_HILL %>%
    rename("Date_Sampled" = "#Timestamp") %>%
@@ -68,25 +64,19 @@ YARRAWONGA<- read_csv("Murray_Discharge/YARRAWONGA.csv")
      rename("YARRAWONGA" = "Value") %>%
     select("Date_Sampled", "YARRAWONGA")
   
-discharge_all <- BALRANALD %>%
-  left_join(BURTUNDY, by = "Date_Sampled") %>%
-  left_join(HEYWOODS, by = "Date_Sampled") %>%
-  left_join(LOCK_9, by = "Date_Sampled") %>%
-  left_join(MERBEIN, by = "Date_Sampled") %>%
-  left_join(MORGAN, by = "Date_Sampled") %>%
-  left_join(SWAN_HILL, by = "Date_Sampled") %>%
-  left_join(YARRAWONGA, by = "Date_Sampled")
+discharge_list <- list(MERBEIN, LOCK_9, YARRAWONGA, SWAN_HILL, HEYWOODS, BALRANALD, BURTUNDY) 
+
+discharge_all <- discharge_list %>%
+  reduce(full_join, by = "Date_Sampled")
 
 discharge_all$Date_Sampled <- as.Date(discharge_all$Date_Sampled, tz = "")
 
 discharge_all <- discharge_all %>%
-  gather(key= SITENAME, value = Value, 2:9)
-
-str(discharge_all)
+  gather(key= SITENAME, value = Value, 2:8)
 
 ```
 
-This is all our discharge data combined in one file, from 1979 to 2022, with variables for each site that contains (mostly) continuous data. 
+This is all our discharge data combined in one file, from 1979 to 2022, with variables for each site that contains (mostly) continuous data.
 
 ```{r, include=FALSE}
 Phyto_AWQC <- read_csv("PMP Data/Phyto_AWQC_FIXED.csv")
@@ -106,34 +96,22 @@ Phyto_AWQC <- Phyto_AWQC %>%
 
 ```
 
-
 ```{r}
-all <- full_join(Phyto_AWQC, discharge_all, by ="SITENAME")
+a <- full_join(Phyto_AWQC, discharge_all)
+
+b <- a %>%
+  drop_na(Value)
+df.combined <- b %>%
+   drop_na(CELLCOUNT)
 ```
 
+This works for joining df's, however it drops Lock 9, variables musn't be named the same.
 
 ```{r}
-A = setDT(Phyto_AWQC)[,.(names())]
+df.combined %>%
+  group_by(SITENAME, TAXA) %>%
+  summarise(
+    Cellcount = mean(CELLCOUNT),
+    Discharge = mean(Value)
+  )
 ```
-
-
-
-```{r}
-library(data.table)
-
-#Find all the names in Ratedata that match the Priceindex per date
-
- A=setDT(LoanData)[,.(names(RateData[-1])%in%PriceIndex,1:4),keyby=OriginationDate]
-
- #Rearrange the data,then only take the Rates that you need
- B=dcast(A,OriginationDate~V2,value.var = "V1")[-1]*RateData[-1]
-
-#Reshape it to the required order after removing the rows whereby the rate is 0
- data.frame(na.omit(`is.na<-`(C<-melt(cbind(RateData[1],B),1),C==0)),LoanData$LNTYPE)
-```
-
-
-
-
-
-
