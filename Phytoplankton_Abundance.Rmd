@@ -29,7 +29,7 @@ library(fable)
 
 ### Load data
 
-```{r}
+```{r, include=FALSE}
 Phyto_AWQC <- read_csv("PMP Data/Phyto_AWQC_FIXED.csv")
 ```
 
@@ -37,7 +37,7 @@ Phyto_AWQC <- read_csv("PMP Data/Phyto_AWQC_FIXED.csv")
 
 While redundant columns have been removed in excel, there is still some work for us to do to get this into a readable format for r. First here being the data. We will fix this first using the r package "lubridate". Dates are thankfully in the same format for both data set, and within the data sets. For now we'll just use the AWQC lab worked data set. 
 
-```{r}
+```{r, include=FALSE}
 Phyto_AWQC <- Phyto_AWQC_FIXED %>% 
   mutate(Date_Sampled = as.Date(DATESAMPLED, format= "%d/%m/%y")) %>%
   select(-DATESAMPLED)

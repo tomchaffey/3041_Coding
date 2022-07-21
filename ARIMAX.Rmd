@@ -229,12 +229,12 @@ farma <- function(y, h, xreg) {
 
 
 ```{r}
-plot(forecast(fit))
+plot(forecast(fit), xlab = "Year", ylab = "Cell Count")
 
 checkresiduals(fit)
 ```
 Holy shit i think that worked. Thankyou rob hyndaman. T
-he ljung-box test indicates autocorrelation of ts, essentially, are residuals independtly distributed (H0) or are they serially correlated. Our p value returned <0.01, indicated there is serial correlation between discharge and phyt abundance (just for lock 9 and anabaena). 
+he ljung-box test indicates autocorrelation of ts, essentially, are residuals independently distributed (H0) or are they serially correlated. Our p value returned <0.01, indicated there is serial correlation between discharge and phyt abundance (just for lock 9 and anabaena). 
 
 N.B. You can compare this forecast using xreg of discharge to just the anabaena forecast seen in Phytoplankton_abundance.rmd and see that they are different, which, cool i guess. Shows something is happening. 
 

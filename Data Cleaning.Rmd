@@ -17,6 +17,9 @@ library(dplyr)
 library(lubridate)
 library(data.table)
 library(arsenal)
+library(forecast)
+library(xts)
+library(dygraphs)
 ```
 
 ### Extracting data
@@ -115,3 +118,53 @@ df.combined %>%
     Discharge = mean(Value)
   )
 ```
+### Subsetting for Presentation and ARIMAX
+
+Now got a complete data set which contains indexed dates, discharge values, site names and cell counts. Unfortunately, once all this cleaning is done, we're left with a set of about 23,000 observations. 
+
+Plots for each Site and total algae. 
+
+```{r}
+df.combined %>% 
+  filter(SITENAME == "YARRAWONGA") %>%
+  ggplot(aes(Date_Sampled, CELLCOUNT)) +
+  geom_point() +
+  scale_y_log10() + 
+  labs(x = "Date",
+       y = "Cellcount (cells/mL)",
+       title = "Total Phytoplankton at Lock 9")
+```
+
+
+```{r}
+p_yarra.xts <- df.combined %>%
+  filter(SITENAME == "YARRAWONGA")
+
+
+pplot_yarra.xts<- xts(p_yarra.xts$CELLCOUNT, order.by = p_yarra.xts$Date_Sampled)
+dygraph(pplot_yarra.xts, main = "Phytoplankton Abundance at Yarrawaonga", ylab = "Cells/mL")
+
+d_yarra.xts <- df.combined %>%
+  filter(SITENAME == "YARRAWONGA")
+
+dplot_yarra.xts <- xts(d_yarra.xts$Value, order.by = d_yarra.xts$Date_Sampled)
+dygraph(dplot_yarra.xts, main = "Discharge at Yarrawonga", ylab = "Discharge [cumec]")
+```
+
+```{r}
+dvp_lock <- df.combined %>%
+  filter(SITENAME =="LOCK 9") %>%
+  filter(grepl("Anabaena", TAXA)) %>%
+  select(TAXA, SITENAME, Value, CELLCOUNT, Date_Sampled)
+
+
+ggplot(dvp_lock, aes(Value, CELLCOUNT)) +
+  geom_point()
+```
+```{r}
+discharge.lm <- lm(CELLCOUNT ~ Value, data = dvp_lock)
+summary(discharge.lm)
+plot(discharge.lm)
+plot(CELLCOUNT ~ Value,data = dvp_lock)
+```
+
