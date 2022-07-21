@@ -14,11 +14,12 @@ While we've made good progress looking at both individually, and pilot tested a 
 library(tidyverse)
 library(dplyr)
 library(lubridate)
+library(data.table)
 ```
 
 ### Extracting data
 
-```{r}
+```{r, include=FALSE}
 BALRANALD <- read_csv("Murray_Discharge/BALRANALD.csv")
   BALRANALD <- BALRANALD %>%
    rename("Date_Sampled" = "#Timestamp") %>%
@@ -40,8 +41,8 @@ HEYWOODS<- read_csv("Murray_Discharge/HEYWOODS.csv")
 LOCK_9<- read_csv("Murray_Discharge/LOCK_9.csv")
   LOCK_9 <- LOCK_9 %>%
    rename("Date_Sampled" = "#Timestamp") %>%
-    rename("LOCK_9" = "Value") %>%
-    select("Date_Sampled", "LOCK_9")
+    rename("LOCK 9" = "Value") %>%
+    select("Date_Sampled", "LOCK 9")
    
 MERBEIN<- read_csv("Murray_Discharge/MERBEIN.csv")
   MERBEIN <- MERBEIN %>%
@@ -58,8 +59,8 @@ MORGAN<- read_csv("Murray_Discharge/MORGAN.csv")
 SWAN_HILL<- read_csv("Murray_Discharge/SWAN_HILL.csv")
   SWAN_HILL<- SWAN_HILL %>%
    rename("Date_Sampled" = "#Timestamp") %>%
-    rename("SWAN_HILL" = "Value") %>%
-    select("Date_Sampled", "SWAN_HILL")
+    rename("SWAN HILL" = "Value") %>%
+    select("Date_Sampled", "SWAN HILL")
    
 YARRAWONGA<- read_csv("Murray_Discharge/YARRAWONGA.csv")
   YARRAWONGA <- YARRAWONGA %>%
@@ -78,13 +79,16 @@ discharge_all <- BALRANALD %>%
 
 discharge_all$Date_Sampled <- as.Date(discharge_all$Date_Sampled, tz = "")
 
+discharge_all <- discharge_all %>%
+  gather(key= SITENAME, value = Value, 2:9)
+
 str(discharge_all)
 
 ```
 
 This is all our discharge data combined in one file, from 1979 to 2022, with variables for each site that contains (mostly) continuous data. 
 
-```{r}
+```{r, include=FALSE}
 Phyto_AWQC <- read_csv("PMP Data/Phyto_AWQC_FIXED.csv")
 
 Phyto_AWQC <- Phyto_AWQC %>% 
@@ -103,6 +107,30 @@ Phyto_AWQC <- Phyto_AWQC %>%
 ```
 
 
+```{r}
+all <- full_join(Phyto_AWQC, discharge_all, by ="SITENAME")
+```
+
+
+```{r}
+A = setDT(Phyto_AWQC)[,.(names())]
+```
+
+
+
+```{r}
+library(data.table)
+
+#Find all the names in Ratedata that match the Priceindex per date
+
+ A=setDT(LoanData)[,.(names(RateData[-1])%in%PriceIndex,1:4),keyby=OriginationDate]
+
+ #Rearrange the data,then only take the Rates that you need
+ B=dcast(A,OriginationDate~V2,value.var = "V1")[-1]*RateData[-1]
+
+#Reshape it to the required order after removing the rows whereby the rate is 0
+ data.frame(na.omit(`is.na<-`(C<-melt(cbind(RateData[1],B),1),C==0)),LoanData$LNTYPE)
+```
 
 
 
