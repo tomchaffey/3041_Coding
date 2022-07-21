@@ -1,0 +1,111 @@
+---
+title: "All_Discharge"
+author: "tomchaffey"
+date: "`r Sys.Date()`"
+output: html_document
+---
+# Discharge and Phytoplankton Combined
+
+
+While we've made good progress looking at both individually, and pilot tested a semi-working ARIMAX, its time to bring it all together and start zooming out. We're going to be using this markdown just to extract everything we need in a clean way, for posterity. 
+
+### Loading Packages
+```{r}
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+```
+
+### Extracting data
+
+```{r}
+BALRANALD <- read_csv("Murray_Discharge/BALRANALD.csv")
+  BALRANALD <- BALRANALD %>%
+   rename("Date_Sampled" = "#Timestamp") %>%
+    rename("BALRANALD" = "Value") %>%
+    select("Date_Sampled", "BALRANALD")
+   
+BURTUNDY<- read_csv("Murray_Discharge/BURTUNDY.csv")
+  BURTUNDY <- BURTUNDY %>%
+   rename("Date_Sampled" = "#Timestamp") %>%
+    rename("BURTUNDY" = "Value") %>%
+    select("Date_Sampled", "BURTUNDY")
+   
+HEYWOODS<- read_csv("Murray_Discharge/HEYWOODS.csv")
+  HEYWOODS <- HEYWOODS %>%
+   rename("Date_Sampled" = "#Timestamp") %>%
+    rename("HEYWOODS" = "Value") %>%
+    select("Date_Sampled", "HEYWOODS")
+   
+LOCK_9<- read_csv("Murray_Discharge/LOCK_9.csv")
+  LOCK_9 <- LOCK_9 %>%
+   rename("Date_Sampled" = "#Timestamp") %>%
+    rename("LOCK_9" = "Value") %>%
+    select("Date_Sampled", "LOCK_9")
+   
+MERBEIN<- read_csv("Murray_Discharge/MERBEIN.csv")
+  MERBEIN <- MERBEIN %>%
+   rename("Date_Sampled" = "#Timestamp") %>%
+    rename("MERBEIN" = "Value") %>%
+    select("Date_Sampled", "MERBEIN")
+   
+MORGAN<- read_csv("Murray_Discharge/MORGAN.csv")
+  MORGAN <- MORGAN %>%
+   rename("Date_Sampled" = "#Timestamp") %>%
+    rename("MORGAN" = "Value") %>%
+    select("Date_Sampled", "MORGAN")
+   
+SWAN_HILL<- read_csv("Murray_Discharge/SWAN_HILL.csv")
+  SWAN_HILL<- SWAN_HILL %>%
+   rename("Date_Sampled" = "#Timestamp") %>%
+    rename("SWAN_HILL" = "Value") %>%
+    select("Date_Sampled", "SWAN_HILL")
+   
+YARRAWONGA<- read_csv("Murray_Discharge/YARRAWONGA.csv")
+  YARRAWONGA <- YARRAWONGA %>%
+   rename("Date_Sampled" = "#Timestamp") %>%
+     rename("YARRAWONGA" = "Value") %>%
+    select("Date_Sampled", "YARRAWONGA")
+  
+discharge_all <- BALRANALD %>%
+  left_join(BURTUNDY, by = "Date_Sampled") %>%
+  left_join(HEYWOODS, by = "Date_Sampled") %>%
+  left_join(LOCK_9, by = "Date_Sampled") %>%
+  left_join(MERBEIN, by = "Date_Sampled") %>%
+  left_join(MORGAN, by = "Date_Sampled") %>%
+  left_join(SWAN_HILL, by = "Date_Sampled") %>%
+  left_join(YARRAWONGA, by = "Date_Sampled")
+
+discharge_all$Date_Sampled <- as.Date(discharge_all$Date_Sampled, tz = "")
+
+str(discharge_all)
+
+```
+
+This is all our discharge data combined in one file, from 1979 to 2022, with variables for each site that contains (mostly) continuous data. 
+
+```{r}
+Phyto_AWQC <- read_csv("PMP Data/Phyto_AWQC_FIXED.csv")
+
+Phyto_AWQC <- Phyto_AWQC %>% 
+  mutate(Date_Sampled = as.Date(DATESAMPLED, format= "%d/%m/%y")) %>%
+  select(-DATESAMPLED, -COMMENTS, -SampleID, -ResultID, -ID, -OTHERID) %>%
+  drop_na(CELLCOUNT) %>%
+  filter(SITENAME == "LOCK 9" | 
+           SITENAME == "YARRAWONGA" |
+           SITENAME == "BURTUNDY" |
+           SITENAME == "MERBEIN" |
+           SITENAME == "SWAN HILL" |
+           SITENAME == "BALRANALD" |
+           SITENAME == "HEYWOODS" |
+           SITENAME == "MORGAN")
+
+```
+
+
+
+
+
+
+
+
