@@ -167,4 +167,69 @@ summary(discharge.lm)
 plot(discharge.lm)
 plot(CELLCOUNT ~ Value,data = dvp_lock)
 ```
+```{r}
+df.combined %>%
+  group_by(SITENAME) %>%
+  summarise(
+    n_distinct(TAXA),
+    sum(CELLCOUNT)
+  )
+
+df.combined %>%
+  group_by(TAXA) %>%
+  summarise(
+    sum(CELLCOUNT)
+  )
+```
+Algae - total. 
+
+```{r}
+algae_df <- df.combined %>%
+  filter(SITENAME == "MERBEIN",
+          TAXA == "Algae - Total")
+```
+
+
+```{r}
+p_algae.xts <- xts(algae_df$CELLCOUNT, order.by = algae_df$Date_Sampled)
+d_algae.xts <- xts(algae_df$Value, order.by = algae_df$Date_Sampled)
+
+pd_algae.xts <- cbind(p_algae.xts, d_algae.xts)
+
+dygraph(p_algae.xts, main ="Phytoplankton")
+dygraph(d_algae.xts, main = "Discharge")
+```
+
+
+```{r, include=FALSE}
+algae.ts <- algae_df %>%
+  select(CELLCOUNT) %>%
+  ts(start = 2016, frequency = 52)
+
+d_algae.ts <- algae_df %>%
+  select(Value) %>%
+  ts(start = 2016, frequency =  52)
+plot(algae.ts)
+plot(d_algae.ts)
+
+```
+```{r}
+merbein <- function(algae.ts, h, d_algae.ts) {
+  ncol <- NCOL(d_algae.ts)
+  X <- matrix(xreg[seq_along(algae.ts), ], ncol = ncol)
+  if (NROW(d_algae.ts) < length(algae.ts) + h) {
+    stop("Not enough xreg data")
+  }
+  newX <- matrix(d_algae.ts[length(algae.ts) + seq(h), ], ncol = ncol)
+  algae_m <- auto.arima(algae.ts, xreg = X)
+  forecast(algae_m, xreg = newX, h = 20)
+}
+```
+
+
+```{r}
+plot(forecast(algae_m, xreg = newX, h =20))
+```
+
+
 
