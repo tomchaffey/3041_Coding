@@ -1,0 +1,113 @@
+---
+title: "Model training/testing"
+author: "tomchaffey"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(data.table)
+library(arsenal)
+library(forecast)
+library(xts)
+library(dygraphs)
+```
+
+
+```{r}
+ab.l9 <- df.combined %>%
+  filter(grepl("Anabaena", TAXA)) %>%
+  filter(SITENAME == "LOCK 9")
+
+ab.l9 <- ab.l9 %>% 
+  select(CELLCOUNT, Date_Sampled, Value)
+
+discharge<- ab.l9 %>%
+select(Value)
+
+anabaena <- ab.l9 %>%
+  select(CELLCOUNT)
+```
+
+```{r}
+ab.ts <- ts(ab.l9$CELLCOUNT, start = c(1997, 11), frequency = 80)
+dc.ts <- ts(ab.l9$Value, start = c(1997, 11), frequency = 80)
+
+plot(ab.ts)
+plot(dc.ts)
+
+```
+
+```{r}
+f <- auto.arima(dc.ts)
+
+plot(forecast(f))
+```
+
+
+
+```{r}
+a.train = ab.l9[1:1500,] 
+a.test = ab.l9[1501:1694,]
+
+discharge.train.ts = ts(a.train$Value,
+                        frequency = 80,
+                        start = c(as.Date("1997-11-25")))
+  
+discharge.test.ts = ts(a.test$Value,
+                       frequency = 80,
+                       start = c(as.Date("2014-05-06")))
+
+ab.train.ts = ts(a.train$CELLCOUNT, 
+                 frequency = 80,
+                 start = c(as.Date("1997-11-25")))
+
+ab.test.ts = ts(a.train$CELLCOUNT, 
+                frequency = 80,
+                start = c(as.Date("2014-05-06")))
+
+```
+
+
+
+```{r}
+arima.f <- auto.arima(ab.train.ts, xreg = discharge.train.ts)
+
+acast <- forecast(arima.f, h = 80, xreg = discharge.test.ts)
+
+plot(acast)
+
+accuracy(acast$mean, ab.train.ts)
+```
+
+
+
+```{r}
+OV<-zoo(SampleData$TiTo, 
+    order.by=SampleData$DateTime)
+
+
+eDate <- ts(OV, frequency = 24)
+
+Train <-eDate[1:15000]
+Test <- eDate[15001:22773]
+
+xregTrain <- SampleData[1:15000,]$CustCount
+    xregTest <- SampleData[15001:22773,]$CustCount
+
+Arima.fit <- auto.arima(Train, xreg = xregTrain)
+
+Acast<-forecast(Arima.fit, h=7772, xreg = xregTest)
+
+accuracy(Acast$mean,Test)
+```
+
+
+
+
+
+
+
