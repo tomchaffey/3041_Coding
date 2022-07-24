@@ -41,28 +41,23 @@ lock9_arimax <- LOCK_9 %>%
   select(`#Timestamp`, Value)
 
 
-```
-
-Lock 9 discharge dates all the way back to 1967, we will have to cut down to 1997 (start of Anabaena at lock 9). Importantly, discharge data is taken daily, we should be easily able to cut down to one reading per week, and have two data frames with the same length. 
-
-```{r}
-lock9_arimax$`#Timestamp` <-  as.Date(lock9_arimax$`#Timestamp`, tz = "")
-
-str(lock9_arimax)
-```
-
-```{r}
 lock9_arimax1 <- lock9_arimax %>%
   filter(`#Timestamp` >="1997-11-25") %>%
   filter(`#Timestamp` <="2018-2-20")
 
+lock9_arimax$`#Timestamp` <-  as.Date(lock9_arimax$`#Timestamp`, tz = "")
+
+str(lock9_arimax)
 
 lock9_arimax1$`#Timestamp` %>%
   max()
 
 lock9_arimax1$`#Timestamp` %>%
   min()
+
 ```
+
+Lock 9 discharge dates all the way back to 1967, we will have to cut down to 1997 (start of Anabaena at lock 9). Importantly, discharge data is taken daily, we should be easily able to cut down to one reading per week, and have two data frames with the same length. 
 
 We now have a df for discharge which extend from both the start of our anabaena set to the end of our anabaena set (1997 - 2018). However, our anabaena set includes cellcounts for all reported taxa within the classificiation Anabaena, which range from genus to species, so we often see multiple cell counts on the same day, not sure if this is a problem yet, if necessary, I can only take unique dates from Anabaena to have to df of the same length. 
 
@@ -81,13 +76,11 @@ dygraph(ab.xts, main = "Anabaena Abundance at Lock 9", ylab = "Cell Count [per m
 No expert, but if i had to guess, looks like there needs to be a long period of low discharge for there to be a cyaono-bacteria bloom. But thats what modelling is for. 
 
 Lets now subset the Lock 9 discharge to get one reading per week, which we can then combine with our Anabaena df to run ARIMAX. 
-
-
 ```{r}
 t1 <- lock9_arimax1 %>%
   mutate(week = floor_date(`#Timestamp`, "week"))
 
-t3 <- t2 %>% 
+t2 <- t1 %>% 
   group_by(week) %>% 
   summarise_if(is.numeric, mean)
 ```
@@ -95,7 +88,7 @@ t3 <- t2 %>%
 We now have week average discharge data for Lock 9, to compare against our weekly data for phytoplankton abundance. Perfect. 
 
 ```{r}
-lock9.ts <- ts(t2$Value, frequency = 52)
+lock9.ts <- ts(t2$Value)
 anabaena.ts <- ts(anabaena_arimax$CELLCOUNT)
 
 plot(lock9.ts)
@@ -118,51 +111,34 @@ Problem x: anabaena data is not weekly, didn't realise until.. now.
 
 Try indexing the sets to match?
 ```{r}
-t3 <- rename(t3, "Date_Sampled" = "week")
+t3 <- rename(t2, "Date_Sampled" = "week")
 
 
-
-```
-
-```{r}
 t3 %>% add_column(CELLCOUNT = NA, .after = 2)
 
 anabaena_arimax1 %>% add_column(Value = NA, .after = 1)
 ```
-
 
 ```{r}
 aa <- full_join(t3, anabaena_arimax1)
 ```
 
 
-
-
 ```{r}
 discharge.l9 <- lock9_arimax1 %>%
   filter(`#Timestamp` >="1997-11-25") %>%
   filter(`#Timestamp` <="2018-2-20")
-```
 
-
-```{r}
 dcl9 <- rename(discharge.l9, "Date_Sampled" = "#Timestamp")
-```
 
-
-```{r}
 aa <- full_join(dcl9, anabaena_arimax1)
 head(aa)
-```
 
-
-```{r}
 aa1 <- aa %>%
   drop_na(CELLCOUNT)
 
 str(aa1)
 ```
-
 So, here was a roundabout way to solving the problem, rename the dates to match, full_join the data sets, and filter out cellcount NA's. Took a while ,idiot. 
 We've now got matching vector for both cellcount and discharge value and can being ARIMAX
 
@@ -175,11 +151,11 @@ Changing out data into ts objects.
 ```{r}
 discharge.ts <- aa1 %>%
   select(Value) %>%
-  as.ts(start = 1997, frequency = 52)
+  ts(start = 1997, frequency = 52)
 
 ab.ts <- aa1 %>%
   select(CELLCOUNT) %>%
-  as.ts(start = 1997, frequency = 52)
+  ts(start = 1997, frequency = 52)
 ```
 
 
@@ -189,6 +165,8 @@ fit.aa <- auto.arima(ab.ts,
 
 checkresiduals(fit.aa)
 
+plot(forecast(fit.aa))
+
 ```
 
 Heres what Rob Hynderman says about forecast with x regressors. You have to create a training model with your xreg, and use it to predict. Will make heads and tails of it soon. 
@@ -196,8 +174,8 @@ Heres what Rob Hynderman says about forecast with x regressors. You have to crea
 ```{r}
 library(forecast)
 set.seed(1)
-stack_data <- ts(rnorm(100), start = 2000, frequency = 12)
-stack_data_xreg <- ts(rnorm(100), start = 2000, frequency = 12)
+y <- ts(rnorm(100), start = 2000, frequency = 12)
+xreg <- ts(rnorm(100), start = 2000, frequency = 12)
 
 farma <- function(y, h, xreg) {
   ncol <- NCOL(xreg)
@@ -221,18 +199,15 @@ farma <- function(y, h, xreg) {
       stop("Not enough xreg data")
     }
     newX <- matrix(discharge.ts[length(ab.ts) +seq(h), ], ncol = ncol)
-    fit<- auto.arima(ab.ts, xreg = X)
+    fit <- auto.arima(ab.ts, xreg = X)
     forecast(fit, xreg = newX, h = 52)
   }
-```
 
-
-
-```{r}
 plot(forecast(fit), xlab = "Year", ylab = "Cell Count")
 
 checkresiduals(fit)
 ```
+
 Holy shit i think that worked. Thankyou rob hyndaman. T
 he ljung-box test indicates autocorrelation of ts, essentially, are residuals independently distributed (H0) or are they serially correlated. Our p value returned <0.01, indicated there is serial correlation between discharge and phyt abundance (just for lock 9 and anabaena). 
 
@@ -243,9 +218,7 @@ UPDATE: Its predictive ability seems limited or something is off I can't tell ye
 ```{r}
 ts.plot(fit, anabaena.ts, 
         gpars = list(xlab = "year", ylab="Cellcount"))
-```
-
-```{r}
 plotarimapred(ab.ts, fit, xlim = c(400, 650), range.percent = 1)
 ```
+
 
