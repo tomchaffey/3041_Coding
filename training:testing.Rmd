@@ -34,11 +34,10 @@ anabaena <- ab.l9 %>%
 
 ```{r}
 ab.ts <- ts(ab.l9$CELLCOUNT, start = c(1997, 11), frequency = 80)
-dc.ts <- ts(ab.l9$Value, start = c(1997, 11), frequency = 80)
-
+dc.ts <- ts(matrix(ab.l9$Value), start = c(1997, 11), frequency = 80)
 plot(ab.ts)
 plot(dc.ts)
-
+x  <- ts(matrix(rnorm(100),ncol=2),start=(1999),fr=4)
 ```
 
 ```{r}
@@ -107,6 +106,32 @@ accuracy(Acast$mean,Test)
 
 
 
+```{r}
+ fc <- function(ab.ts, h, dc.ts)
+ {
+   ncol <- NCOL(dc.ts)
+   X <- matrix(dc.ts[1:length(dc.ts), ], ncol = ncol)
+   if(NROW(dc.ts) < length(ab.ts) + h)
+     stop("Not enough xreg data for forecasting")
+   newX <- matrix(dc.ts[length(ab,ts) + (1:h), ], ncol = ncol)
+   fit <- auto.arima(ab.ts, xreg =X )
+   forecast(fit, xreg = newX, h=h)
+ }
+
+index == "TAXA"
+ 
+tsCV(ab.ts, fc, xreg= dc.ts, h=1)
+
+
+```
+
+```{r}
+arima_xreg <- function(dc.ts, h, xreg, newxreg) {
+forecast(Arima(x, order = c(1, 1, 0), xreg = xreg), xreg = newxreg)
+}
+
+tsCV(Y, arima_xreg, xreg = X_all)
+```
 
 
 
