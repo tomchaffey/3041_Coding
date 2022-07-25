@@ -133,7 +133,6 @@ df.month_discharge <- aggregate(df.combined$Value, by = list(df.combined$MonthYe
 ```
 
 ### Subsetting for Presentation and ARIMAX
-
 Now got a complete data set which contains indexed dates, discharge values, site names and cell counts. Unfortunately, once all this cleaning is done, we're left with a set of about 23,000 observations. 
 
 Plots for each Site and total algae. 
@@ -228,7 +227,7 @@ farma <- function(algae.ts, h, d_algae.ts) {
 
 
 
-### Heywoods
+### Heywoods - DONE 
 ```{r}
 Heywoods.df <- df.combined %>%
   filter(SITENAME =="HEYWOODS")
@@ -267,7 +266,7 @@ plot_hd3 <- plot(h_bg_discharge)
 
 
 ```
-###Yarrawonga
+###Yarrawonga - DONE
 ```{r}
 Yarrawonga.df <- df.combined %>%
   filter(SITENAME == "YARRAWONGA")
@@ -309,28 +308,209 @@ plot_y2 <- plot(y_aula_discharge)
 plot_y3 <- plot(y_bg_discharge)
 plot_y4 <- plot(y_aphanp_discharge)
 ```
-###Merbein 
+###Merbein - DONE
 ```{r}
+Merbein.df <- df.combined %>%
+  filter(SITENAME == "MERBEIN")
+
+min(Merbein.df$Date_Sampled)
+max(Merbein.df$Date_Sampled)
+
+Merbein.df %>% 
+  group_by(TAXA) %>%
+  summarise(sum(CELLCOUNT))
+
+merbein_algae <- Merbein.df %>%
+  filter(TAXA =="Algae - Total")
+    m_algae.ts <- ts(merbein_algae$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      m_algae_discharge <- ts(merbein_algae$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+merbein_aphanocapsa <- Merbein.df %>%
+  filter(TAXA =="Aphanocapsa")
+    m_aphano.ts <- ts(merbein_aphanocapsa$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      m_aphanp_discharge <- ts(merbein_aphanocapsa$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+merbein_aula <- Merbein.df %>%
+  filter(TAXA =="Aulacoseira")
+    m_aula.ts <- ts(merbein_aula$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      m_aula_discharge <- ts(merbein_aula$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+merbein_bg <- Merbein.df %>%
+  filter(TAXA =="Blue Green Algae - Total")
+    m_bg.ts <- ts(merbein_bg$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      m_bg_discharge <- ts(merbein_bg$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+      
+par(mfrow = c(1,4))
+plot_algae_m <- plot(m_algae.ts)
+plot_aulacoseira_m <- plot(m_aula.ts)
+plot_bg_m <- plot(m_bg.ts)
+plot_aphano_m <- plot(m_aphano.ts)
+
+par(mfrow = c(1,4))
+plot_m1 <- plot(m_algae_discharge)
+plot_m2 <- plot(m_aula_discharge)
+plot_m3 <- plot(m_bg_discharge)
+plot_m4 <- plot(m_aphanp_discharge)
 ```
-###Morgan
+###Swan Hill - DONE
 ```{r}
+Swan_hill.df <- df.combined %>%
+  filter(SITENAME == "SWAN HILL")
 
+min(Swan_hill.df$Date_Sampled)
+max(Swan_hill.df$Date_Sampled)
+
+Swan_hill.df %>% 
+  group_by(TAXA) %>%
+  summarise(sum(CELLCOUNT))
+
+swan_algae <- Swan_hill.df %>%
+  filter(TAXA =="Algae - Total")
+    s_algae.ts <- ts(swan_algae$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      s_algae_discharge <- ts(swan_algae$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+swan_aphanocapsa <- Swan_hill.df %>%
+  filter(TAXA =="Aphanocapsa")
+    s_aphano.ts <- ts(swan_aphanocapsa$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      s_aphanp_discharge <- ts(swan_aphanocapsa$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+swan_aula <- Swan_hill.df %>%
+  filter(TAXA =="Aulacoseira")
+    s_aula.ts <- ts(swan_aula$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      s_aula_discharge <- ts(swan_aula$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+s_bg <- Swan_hill.df %>%
+  filter(TAXA =="Blue Green Algae - Total")
+    s_bg.ts <- ts(s_bg$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      s_bg_discharge <- ts(s_bg$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+      
+par(mfrow = c(1,4))
+plot_algae_s <- plot(s_algae.ts)
+plot_aulacoseira_s <- plot(s_aula.ts)
+plot_bg_s <- plot(s_bg.ts)
+plot_aphano_s <- plot(s_aphano.ts)
+
+par(mfrow = c(1,4))
+plot_s1 <- plot(s_algae_discharge)
+plot_s2 <- plot(s_aula_discharge)
+plot_s3 <- plot(s_bg_discharge)
+plot_s4 <- plot(s_aphanp_discharge)
 ```
-###Swan Hill
+### Lock 9 - DONE
 ```{r}
+Lock9.df <- df.combined %>%
+  filter(SITENAME == "LOCK 9")
 
+min(Lock9.df$Date_Sampled)
+max(Lock9.df$Date_Sampled)
+
+Lock9.df %>% 
+  group_by(TAXA) %>%
+  summarise(sum(CELLCOUNT))
+
+lock9_algae <- Lock9.df %>%
+  filter(TAXA =="Algae - Total")
+    l_algae.ts <- ts(lock9_algae$CELLCOUNT, start = c(1997,11), end = c(2019,8), frequency = 80)
+      l_algae_discharge <- ts(lock9_algae$Value, start = c(1997,11), end = c(2019,8), frequency = 80)
+lock9_aphanocapsa <- Lock9.df %>%
+  filter(TAXA =="Aphanocapsa")
+    l_aphano.ts <- ts(lock9_aphanocapsa$CELLCOUNT, start = c(1997,11), end = c(2019,8), frequency = 80)
+      l_aphanp_discharge <- ts(lock9_aphanocapsa$Value, start = c(1997,11), end = c(2019,8), frequency = 80)
+lock9_aula <- Lock9.df %>%
+  filter(TAXA =="Aulacoseira")
+    l_aula.ts <- ts(lock9_aula$CELLCOUNT, start = c(1997,11), end = c(2019,8), frequency = 80)
+      l_aula_discharge <- ts(lock9_aula$Value, start = c(1997,11), end = c(2019,8), frequency = 80)
+lock9_bg <- Lock9.df %>%
+  filter(TAXA =="Blue Green Algae - Total")
+    l_bg.ts <- ts(lock9_bg$CELLCOUNT, start = c(1997,11), end = c(2019,8), frequency = 80)
+      l_bg_discharge <- ts(lock9_bg$Value, start = c(1997,11), end = c(2019,8), frequency = 80)
+      
+par(mfrow = c(1,4))
+plot_algae_l <- plot(l_algae.ts)
+plot_aulacoseira_l <- plot(l_aula.ts)
+plot_bg_l <- plot(l_bg.ts)
+plot_aphano_l <- plot(l_aphano.ts)
+
+par(mfrow = c(1,4))
+plot_l1 <- plot(l_algae_discharge)
+plot_l2 <- plot(l_aula_discharge)
+plot_l3 <- plot(l_bg_discharge)
+plot_l4 <- plot(l_aphanp_discharge)
 ```
-### Lock 9 
+###Balranald - DONE
 ```{r}
+Balranald.df <- df.combined %>%
+  filter(SITENAME == "BALRANALD")
 
+min(Balranald.df$Date_Sampled)
+max(Balranald.df$Date_Sampled)
+
+Balranald.df %>% 
+  group_by(TAXA) %>%
+  summarise(sum(CELLCOUNT))
+
+balranald_algae <- Balranald.df %>%
+  filter(TAXA =="Algae - Total")
+    b_algae.ts <- ts(balranald_algae$CELLCOUNT, start = c(2016), end = c(2019,8), frequency = 80)
+      b_algae_discharge <- ts(balranald_algae$Value, start = c(2016), end = c(2019,8), frequency = 80)
+balranald_aphanocapsa <- Balranald.df %>%
+  filter(TAXA =="Aphanocapsa")
+    b_aphano.ts <- ts(balranald_aphanocapsa$CELLCOUNT, start = c(2016), end = c(2019,8), frequency = 80)
+      b_aphanp_discharge <- ts(balranald_aphanocapsa$Value, start = c(2016), end = c(2019,8), frequency = 80)
+balranald_aula <- Balranald.df %>%
+  filter(TAXA =="Aulacoseira")
+    b_aula.ts <- ts(balranald_aula$CELLCOUNT, start = c(2016), end = c(2019,8), frequency = 80)
+      b_aula_discharge <- ts(balranald_aula$Value, start = c(2016), end = c(2019,8), frequency = 80)
+balranald_bg <- Balranald.df %>%
+  filter(TAXA =="Blue Green Algae - Total")
+    b_bg.ts <- ts(balranald_aula$CELLCOUNT, start = c(2016), end = c(2019,8), frequency = 80)
+      b_bg_discharge <- ts(balranald_aula$Value, start = c(2016), end = c(2019,8), frequency = 80)
+      
+par(mfrow = c(1,4))
+plot_algae_b <- plot(b_algae.ts)
+plot_aulacoseira_b <- plot(b_aula.ts)
+plot_bg_b <- plot(b_bg.ts)
+plot_aphano_b <- plot(b_aphano.ts)
+
+par(mfrow = c(1,4))
+plot_b1 <- plot(b_algae_discharge)
+plot_b2 <- plot(b_aula_discharge)
+plot_b3 <- plot(b_bg_discharge)
+plot_b4 <- plot(b_aphanp_discharge)
 ```
-###Balranald
-
+### Burtrundy - DONE
 ```{r}
+Burtundy.df <- df.combined %>%
+  filter(SITENAME == "BURTUNDY")
 
-```
-### Burtrundy 
-```{r}
+min(Burtundy.df$Date_Sampled)
+max(Burtundy.df$Date_Sampled)
 
+Burtundy.df %>% 
+  group_by(TAXA) %>%
+  summarise(sum(CELLCOUNT))
+
+burtundy_algae <- Burtundy.df %>%
+  filter(TAXA =="Algae - Total")
+    bt_algae.ts <- ts(burtundy_algae$CELLCOUNT, start = c(2016), end = c(2019,8), frequency = 80)
+      bt_algae_discharge <- ts(burtundy_algae$Value, start = c(2016), end = c(2019,8), frequency = 80)
+burtundy_aphanocapsa <- Burtundy.df %>%
+  filter(TAXA =="Aphanocapsa")
+    bt_aphano.ts <- ts(burtundy_aphanocapsa$CELLCOUNT, start = c(2016), end = c(2019,8), frequency = 80)
+      bt_aphanp_discharge <- ts(burtundy_aphanocapsa$Value, start = c(2016), end = c(2019,8), frequency = 80)
+burtundy_aula <- Burtundy.df %>%
+  filter(TAXA =="Aulacoseira")
+    bt_aula.ts <- ts(burtundy_aula$CELLCOUNT, start = c(2016), end = c(2019,8), frequency = 80)
+      bt_aula_discharge <- ts(burtundy_aula$Value, start = c(2016), end = c(2019,8), frequency = 80)
+burtundy_bg <- Burtundy.df %>%
+  filter(TAXA =="Blue Green Algae - Total")
+    bt_bg.ts <- ts(burtundy_bg$CELLCOUNT, start = c(2016), end = c(2019,8), frequency = 80)
+      bt_bg_discharge <- ts(burtundy_bg$Value, start = c(2016), end = c(2019,8), frequency = 80)
+      
+par(mfrow = c(1,4))
+plot_algae_bt <- plot(bt_algae.ts)
+plot_aulacoseira_bt <- plot(bt_aula.ts)
+plot_bg_bt <- plot(bt_bg.ts)
+plot_aphano_bt <- plot(bt_aphano.ts)
+
+par(mfrow = c(1,4))
+plot_bt1 <- plot(bt_algae_discharge)
+plot_bt2 <- plot(bt_aula_discharge)
+plot_bt3 <- plot(bt_bg_discharge)
+plot_bt4 <- plot(bt_aphanp_discharge)
 ```
 
