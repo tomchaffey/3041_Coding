@@ -95,7 +95,7 @@ Phyto_AWQC <- Phyto_AWQC %>%
            SITENAME == "SWAN HILL" |
            SITENAME == "BALRANALD" |
            SITENAME == "HEYWOODS" |
-           SITENAME == "MORGAN")
+           SITENAME == "MORGAN") 
 
 ```
 
@@ -105,7 +105,9 @@ a <- full_join(Phyto_AWQC, discharge_all)
 b <- a %>%
   drop_na(Value)
 df.combined <- b %>%
-   drop_na(CELLCOUNT)
+   drop_na(CELLCOUNT) %>%
+  mutate(log_CELLCOUNT = log10(CELLCOUNT)) %>%
+  mutate(log_Discharge = log10(Value))
 ```
 
 This works for joining df's, however it drops Lock 9, variables musn't be named the same.
@@ -118,6 +120,18 @@ df.combined %>%
     Discharge = mean(Value)
   )
 ```
+
+```{r}
+df.combined$Date_Sampled <- as.POSIXct(df.combined$Date_Sampled)
+df.combined <- mutate(df.combined, MonthYear = paste(year(Date_Sampled), formatC(month(Date_Sampled), width = 2, flag = "0")))
+df.combined <- mutate(df.combined, Week = week(Date_Sampled))
+df.month_cell <- aggregate(df.combined$CELLCOUNT, by = list(df.combined$MonthYear), FUN = function(x) mean(x, na.rm=T))
+df.month_discharge <- aggregate(df.combined$Value, by = list(df.combined$MonthYear), FUN = function(x) mean(x, na.rm=T))
+
+
+  
+```
+
 ### Subsetting for Presentation and ARIMAX
 
 Now got a complete data set which contains indexed dates, discharge values, site names and cell counts. Unfortunately, once all this cleaning is done, we're left with a set of about 23,000 observations. 
@@ -127,7 +141,7 @@ Plots for each Site and total algae.
 ```{r}
 df.combined %>% 
   filter(SITENAME == "YARRAWONGA") %>%
-  ggplot(aes(Date_Sampled, CELLCOUNT)) +
+  ggplot(aes(Date_Sampled, log_CELLCOUNT)) +
   geom_point() +
   scale_y_log10() + 
   labs(x = "Date",
@@ -141,32 +155,16 @@ p_yarra.xts <- df.combined %>%
   filter(SITENAME == "YARRAWONGA")
 
 
-pplot_yarra.xts<- xts(p_yarra.xts$CELLCOUNT, order.by = p_yarra.xts$Date_Sampled)
+pplot_yarra.xts<- xts(p_yarra.xts$log_CELLCOUNT, order.by = p_yarra.xts$Date_Sampled)
 dygraph(pplot_yarra.xts, main = "Phytoplankton Abundance at Yarrawaonga", ylab = "Cells/mL")
 
 d_yarra.xts <- df.combined %>%
   filter(SITENAME == "YARRAWONGA")
 
-dplot_yarra.xts <- xts(d_yarra.xts$Value, order.by = d_yarra.xts$Date_Sampled)
+dplot_yarra.xts <- xts(d_yarra.xts$log_Discharge, order.by = d_yarra.xts$Date_Sampled)
 dygraph(dplot_yarra.xts, main = "Discharge at Yarrawonga", ylab = "Discharge [cumec]")
 ```
 
-```{r}
-dvp_lock <- df.combined %>%
-  filter(SITENAME =="LOCK 9") %>%
-  filter(grepl("Anabaena", TAXA)) %>%
-  select(TAXA, SITENAME, Value, CELLCOUNT, Date_Sampled)
-
-
-ggplot(dvp_lock, aes(Value, CELLCOUNT)) +
-  geom_point()
-```
-```{r}
-discharge.lm <- lm(CELLCOUNT ~ Value, data = dvp_lock)
-summary(discharge.lm)
-plot(discharge.lm)
-plot(CELLCOUNT ~ Value,data = dvp_lock)
-```
 ```{r}
 df.combined %>%
   group_by(SITENAME) %>%
@@ -185,14 +183,14 @@ Algae - total.
 
 ```{r}
 algae_df <- df.combined %>%
-  filter(SITENAME == "MERBEIN",
+  filter(SITENAME == "LOCK 9",
           TAXA == "Algae - Total")
 ```
 
 
 ```{r}
-p_algae.xts <- xts(algae_df$CELLCOUNT, order.by = algae_df$Date_Sampled)
-d_algae.xts <- xts(algae_df$Value, order.by = algae_df$Date_Sampled)
+p_algae.xts <- xts(algae_df$log_CELLCOUNT, order.by = algae_df$Date_Sampled)
+d_algae.xts <- xts(algae_df$log_Discharge, order.by = algae_df$Date_Sampled)
 
 pd_algae.xts <- cbind(p_algae.xts, d_algae.xts)
 
@@ -201,35 +199,138 @@ dygraph(d_algae.xts, main = "Discharge")
 ```
 
 
-```{r, include=FALSE}
+```{r}
 algae.ts <- algae_df %>%
-  select(CELLCOUNT) %>%
-  ts(start = 2016, frequency = 52)
+  select(log_CELLCOUNT) %>%
+  ts(start = c(1997,11), frequency = 80)
 
 d_algae.ts <- algae_df %>%
-  select(Value) %>%
-  ts(start = 2016, frequency =  52)
-plot(algae.ts)
-plot(d_algae.ts)
+  select(log_Discharge) %>%
+  ts(start = c(1997,11), frequency =  80)
+
+plot.ts(algae.ts)
+plot.ts(d_algae.ts)
 
 ```
+
+
 ```{r}
-merbein <- function(algae.ts, h, d_algae.ts) {
+farma <- function(algae.ts, h, d_algae.ts) {
   ncol <- NCOL(d_algae.ts)
   X <- matrix(xreg[seq_along(algae.ts), ], ncol = ncol)
-  if (NROW(d_algae.ts) < length(algae.ts) + h) {
-    stop("Not enough xreg data")
-  }
   newX <- matrix(d_algae.ts[length(algae.ts) + seq(h), ], ncol = ncol)
   algae_m <- auto.arima(algae.ts, xreg = X)
-  forecast(algae_m, xreg = newX, h = 20)
+  forecast(algae_m, xreg = newX, h = h)
 }
 ```
 
 
+
+
+
+### Heywoods
 ```{r}
-plot(forecast(algae_m, xreg = newX, h =20))
+Heywoods.df <- df.combined %>%
+  filter(SITENAME =="HEYWOODS")
+min(Heywoods.df$Date_Sampled)
+max(Heywoods.df$Date_Sampled)
+
+Heywoods.df %>%
+  group_by(TAXA) %>%
+  summarise(CELLCOUNT) 
+
+## Algae total, aulacoseira, b-g total 
+
+heywoods_algae <- Heywoods.df %>%
+  filter(TAXA =="Algae - Total")
+    h_algae.ts <- ts(heywoods_algae$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      h_algae_discharge <- ts(heywoods_algae$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+heywoods_aulacoseira <- Heywoods.df %>%
+  filter(TAXA == "Aulacoseira")
+     h_aulacoseira.ts <- ts(heywoods_aulacoseira$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      h_aula_discharge <- ts(heywoods_aulacoseira$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+heywoods_bg <- Heywoods.df %>%
+  filter(TAXA == "Blue Green Algae - Total")
+    h_bg.ts <- ts(heywoods_bg$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      h_bg_discharge <- ts(heywoods_bg$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+
+
+par(mfrow = c(1,3))
+plot_algae <- plot(h_algae.ts)
+plot_aulacoseira <- plot(h_aulacoseira.ts)
+plot_bg <- plot(h_bg.ts)
+
+par(mfrow = c(1,3))
+plot_hd1 <- plot(h_algae_discharge)
+plot_hd2 <- plot(h_aula_discharge)
+plot_hd3 <- plot(h_bg_discharge)
+
+
 ```
+###Yarrawonga
+```{r}
+Yarrawonga.df <- df.combined %>%
+  filter(SITENAME == "YARRAWONGA")
 
+min(Yarrawonga.df$Date_Sampled)
+max(Yarrawonga.df$Date_Sampled)
 
+Yarrawonga.df %>% 
+  group_by(TAXA) %>%
+  summarise(sum(CELLCOUNT))
+
+# Algae total, aphanocapsa, aulacoeira, bg total
+yarra_algae <- Yarrawonga.df %>%
+  filter(TAXA =="Algae - Total")
+    y_algae.ts <- ts(yarra_algae$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      y_algae_discharge <- ts(yarra_algae$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+yarra_aphanocapsa <- Yarrawonga.df %>%
+  filter(TAXA =="Aphanocapsa")
+    y_aphano.ts <- ts(yarra_aphanocapsa$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      y_aphanp_discharge <- ts(yarra_aphanocapsa$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+yarra_aula <- Yarrawonga.df %>%
+  filter(TAXA =="Aulacoseira")
+    y_aula.ts <- ts(yarra_aula$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      y_aula_discharge <- ts(yarra_aula$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+yarra_bg <- Yarrawonga.df %>%
+  filter(TAXA =="Blue Green Algae - Total")
+    y_bg.ts <- ts(yarra_bg$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
+      y_bg_discharge <- ts(yarra_bg$Value, start = c(2016,7), end = c(2019,8), frequency = 80)
+      
+par(mfrow = c(1,4))
+plot_algae_y <- plot(y_algae.ts)
+plot_aulacoseira_y <- plot(y_aula.ts)
+plot_bg_y <- plot(y_bg.ts)
+plot_aphano_y <- plot(y_aphano.ts)
+
+par(mfrow = c(1,4))
+plot_y1 <- plot(y_algae_discharge)
+plot_y2 <- plot(y_aula_discharge)
+plot_y3 <- plot(y_bg_discharge)
+plot_y4 <- plot(y_aphanp_discharge)
+```
+###Merbein 
+```{r}
+```
+###Morgan
+```{r}
+
+```
+###Swan Hill
+```{r}
+
+```
+### Lock 9 
+```{r}
+
+```
+###Balranald
+
+```{r}
+
+```
+### Burtrundy 
+```{r}
+
+```
 
