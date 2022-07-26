@@ -542,6 +542,47 @@ plot(total_l9d_ts)
 
 
 fit1 <- auto.arima(total_l9_ts)
+fit1
 plot(forecast(fit1, h  = 52))
+```
+
+```{r}
+### making xregs for l9 discharge ... cmon baby 
+
+l9_train = L9sum[1:801,]
+l9_test = L9sum[802:1003,]
+discharge.train = ts(l9_train$Value, 
+                     frequency = 45,
+                     start = c(1996, 11))
+cell_train = ts(log10(l9_train$CELLCOUNT),
+                frequency = 45,
+                start = c(1997, 11))
+discharge.test = ts(l9_test$Value,
+                    frequency = 45,
+                    start = c(2015, 06)) # test and train should be 80/20 of the vector 
+cell_test = ts(log10(l9_test$CELLCOUNT), 
+               frequency = 45,
+               start= c(2015, 06))
+
+l9.arima <- auto.arima(log10(L9sum$CELLCOUNT),
+                   xreg = L9sum$Value) # run arima
+l9.fc <- forecast(l9.arima, 
+                  xreg = rep(10,6), # not sure what rep does...
+                  h = 52) # forecast arima
+plot(l9.fc) # plot forecast 
+
+
+fitrain <- auto.arima(cell_train, 
+                      xreg = discharge.train)
+train.fc <- forecast(fitrain,
+                     xreg = discharge.test)
+plot(train.fc)
+
+
+# with observed 
+
+autoplot(train.fc) + autolayer(cell_test)
+
+
 ```
 
