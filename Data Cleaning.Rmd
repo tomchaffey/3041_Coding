@@ -20,6 +20,8 @@ library(arsenal)
 library(forecast)
 library(xts)
 library(dygraphs)
+library(zoo)
+library(tsibble)
 ```
 
 ### Extracting data
@@ -108,6 +110,13 @@ df.combined <- b %>%
    drop_na(CELLCOUNT) %>%
   mutate(log_CELLCOUNT = log10(CELLCOUNT)) %>%
   mutate(log_Discharge = log10(Value))
+
+
+df.combined <- df.combined %>%
+  mutate(MonthYear = paste(year(Date_Sampled), formatC(month(Date_Sampled), width = 2, flag = "0")))
+df.combined <- df.combined %>%
+  mutate(Week = week(Date_Sampled))
+  )
 ```
 
 This works for joining df's, however it drops Lock 9, variables musn't be named the same.
@@ -222,10 +231,6 @@ farma <- function(algae.ts, h, d_algae.ts) {
   forecast(algae_m, xreg = newX, h = h)
 }
 ```
-
-
-
-
 
 ### Heywoods - DONE 
 ```{r}
@@ -402,6 +407,14 @@ Lock9.df %>%
   group_by(TAXA) %>%
   summarise(sum(CELLCOUNT))
 
+L9sum <- aggregate(x = Lock9.df[c("Value", "CELLCOUNT")],
+                   FUN = sum,
+                   by = list(Group.date = Lock9.df$Date_Sampled))
+
+lock9_anabaena <- Lock9.df %>%
+ filter(TAXA =="Algae - Total")
+    l_anabaena.ts <- ts(lock9_anabaena$CELLCOUNT, start = c(1997,11), end = c(2019,8), frequency = 80)
+      l_anabaena_discharge <- ts(lock9_anabaena$Value, start = c(1997,11), end = c(2019,8), frequency = 80)
 lock9_algae <- Lock9.df %>%
   filter(TAXA =="Algae - Total")
     l_algae.ts <- ts(lock9_algae$CELLCOUNT, start = c(1997,11), end = c(2019,8), frequency = 80)
@@ -419,13 +432,15 @@ lock9_bg <- Lock9.df %>%
     l_bg.ts <- ts(lock9_bg$CELLCOUNT, start = c(1997,11), end = c(2019,8), frequency = 80)
       l_bg_discharge <- ts(lock9_bg$Value, start = c(1997,11), end = c(2019,8), frequency = 80)
       
-par(mfrow = c(1,4))
+par(mfrow = c(1,5))
+plot_anabaena <- plot(l_anabaena.ts)
 plot_algae_l <- plot(l_algae.ts)
 plot_aulacoseira_l <- plot(l_aula.ts)
 plot_bg_l <- plot(l_bg.ts)
 plot_aphano_l <- plot(l_aphano.ts)
 
-par(mfrow = c(1,4))
+par(mfrow = c(1,5))
+plot_l <- plot(l_anabaena_discharge)
 plot_l1 <- plot(l_algae_discharge)
 plot_l2 <- plot(l_aula_discharge)
 plot_l3 <- plot(l_bg_discharge)
@@ -512,5 +527,21 @@ plot_bt1 <- plot(bt_algae_discharge)
 plot_bt2 <- plot(bt_aula_discharge)
 plot_bt3 <- plot(bt_bg_discharge)
 plot_bt4 <- plot(bt_aphanp_discharge)
+```
+
+### Lock 9 total cyanobacteria arima 
+```{r}
+head(L9sum)
+
+total_l9_ts <- ts(log10(L9sum$CELLCOUNT), start = c(1997, 11), frequency = 52)
+total_l9d_ts <- ts(L9sum$Value, start =c(1997, 11), frequency = 52)
+
+par(mfrow = c(1,2))
+plot(total_l9_ts)
+plot(total_l9d_ts)
+
+
+fit1 <- auto.arima(total_l9_ts)
+plot(forecast(fit1, h  = 52))
 ```
 
