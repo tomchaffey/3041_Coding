@@ -102,11 +102,12 @@ Phyto_AWQC <- Phyto_AWQC %>%
 ```
 
 ```{r}
-a <- full_join(Phyto_AWQC, discharge_all)
+# Combining DFs
+df.combined <- full_join(Phyto_AWQC, discharge_all)
 
-b <- a %>%
+df.combined <- df.combined %>%
   drop_na(Value)
-df.combined <- b %>%
+df.combined <- df.combined %>%
    drop_na(CELLCOUNT) %>%
   mutate(log_CELLCOUNT = log10(CELLCOUNT)) %>%
   mutate(log_Discharge = log10(Value))
@@ -131,6 +132,7 @@ df.combined %>%
 ```
 
 ```{r}
+# not necessary, ignore
 df.combined$Date_Sampled <- as.POSIXct(df.combined$Date_Sampled)
 df.combined <- mutate(df.combined, MonthYear = paste(year(Date_Sampled), formatC(month(Date_Sampled), width = 2, flag = "0")))
 df.combined <- mutate(df.combined, Week = week(Date_Sampled))
@@ -142,38 +144,13 @@ df.month_discharge <- aggregate(df.combined$Value, by = list(df.combined$MonthYe
 ```
 
 ### Subsetting for Presentation and ARIMAX
-Now got a complete data set which contains indexed dates, discharge values, site names and cell counts. Unfortunately, once all this cleaning is done, we're left with a set of about 23,000 observations. 
 
-Plots for each Site and total algae. 
+Now got a complete data set which contains indexed dates, discharge values, site names and cell counts. Unfortunately, once all this cleaning is done, we're left with a set of about 23,000 observations.
 
-```{r}
-df.combined %>% 
-  filter(SITENAME == "YARRAWONGA") %>%
-  ggplot(aes(Date_Sampled, log_CELLCOUNT)) +
-  geom_point() +
-  scale_y_log10() + 
-  labs(x = "Date",
-       y = "Cellcount (cells/mL)",
-       title = "Total Phytoplankton at Lock 9")
-```
-
+Plots for each Site and total algae.
 
 ```{r}
-p_yarra.xts <- df.combined %>%
-  filter(SITENAME == "YARRAWONGA")
-
-
-pplot_yarra.xts<- xts(p_yarra.xts$log_CELLCOUNT, order.by = p_yarra.xts$Date_Sampled)
-dygraph(pplot_yarra.xts, main = "Phytoplankton Abundance at Yarrawaonga", ylab = "Cells/mL")
-
-d_yarra.xts <- df.combined %>%
-  filter(SITENAME == "YARRAWONGA")
-
-dplot_yarra.xts <- xts(d_yarra.xts$log_Discharge, order.by = d_yarra.xts$Date_Sampled)
-dygraph(dplot_yarra.xts, main = "Discharge at Yarrawonga", ylab = "Discharge [cumec]")
-```
-
-```{r}
+# Summary statistics
 df.combined %>%
   group_by(SITENAME) %>%
   summarise(
@@ -187,27 +164,14 @@ df.combined %>%
     sum(CELLCOUNT)
   )
 ```
-Algae - total. 
+
+### Messing with algae
 
 ```{r}
+# Playing with algae
 algae_df <- df.combined %>%
   filter(SITENAME == "LOCK 9",
           TAXA == "Algae - Total")
-```
-
-
-```{r}
-p_algae.xts <- xts(algae_df$log_CELLCOUNT, order.by = algae_df$Date_Sampled)
-d_algae.xts <- xts(algae_df$log_Discharge, order.by = algae_df$Date_Sampled)
-
-pd_algae.xts <- cbind(p_algae.xts, d_algae.xts)
-
-dygraph(p_algae.xts, main ="Phytoplankton")
-dygraph(d_algae.xts, main = "Discharge")
-```
-
-
-```{r}
 algae.ts <- algae_df %>%
   select(log_CELLCOUNT) %>%
   ts(start = c(1997,11), frequency = 80)
@@ -221,18 +185,10 @@ plot.ts(d_algae.ts)
 
 ```
 
+# Subsetting out df's for analysis
 
-```{r}
-farma <- function(algae.ts, h, d_algae.ts) {
-  ncol <- NCOL(d_algae.ts)
-  X <- matrix(xreg[seq_along(algae.ts), ], ncol = ncol)
-  newX <- matrix(d_algae.ts[length(algae.ts) + seq(h), ], ncol = ncol)
-  algae_m <- auto.arima(algae.ts, xreg = X)
-  forecast(algae_m, xreg = newX, h = h)
-}
-```
+### Heywoods - DONE
 
-### Heywoods - DONE 
 ```{r}
 Heywoods.df <- df.combined %>%
   filter(SITENAME =="HEYWOODS")
@@ -244,6 +200,10 @@ Heywoods.df %>%
   summarise(CELLCOUNT) 
 
 ## Algae total, aulacoseira, b-g total 
+
+hey_sum <- aggregate(x = Heywoods.df[c("Value", "CELLCOUNT")],
+                   FUN = sum,
+                   by = list(Group.date = Heywoods.df$Date_Sampled))
 
 heywoods_algae <- Heywoods.df %>%
   filter(TAXA =="Algae - Total")
@@ -271,7 +231,9 @@ plot_hd3 <- plot(h_bg_discharge)
 
 
 ```
+
 ###Yarrawonga - DONE
+
 ```{r}
 Yarrawonga.df <- df.combined %>%
   filter(SITENAME == "YARRAWONGA")
@@ -284,6 +246,11 @@ Yarrawonga.df %>%
   summarise(sum(CELLCOUNT))
 
 # Algae total, aphanocapsa, aulacoeira, bg total
+
+yarra_sum <- aggregate(x = Yarrawonga.df[c("Value", "CELLCOUNT")],
+                   FUN = sum,
+                   by = list(Group.date = Yarrawonga.df$Date_Sampled))
+
 yarra_algae <- Yarrawonga.df %>%
   filter(TAXA =="Algae - Total")
     y_algae.ts <- ts(yarra_algae$CELLCOUNT, start = c(2016,7), end = c(2019,8), frequency = 80)
@@ -313,7 +280,9 @@ plot_y2 <- plot(y_aula_discharge)
 plot_y3 <- plot(y_bg_discharge)
 plot_y4 <- plot(y_aphanp_discharge)
 ```
+
 ###Merbein - DONE
+
 ```{r}
 Merbein.df <- df.combined %>%
   filter(SITENAME == "MERBEIN")
@@ -324,6 +293,12 @@ max(Merbein.df$Date_Sampled)
 Merbein.df %>% 
   group_by(TAXA) %>%
   summarise(sum(CELLCOUNT))
+
+
+#merbein sum 
+merb_sum <- aggregate(x = Merbein.df[c("Value", "CELLCOUNT")],
+                   FUN = sum,
+                   by = list(Group.date = Merbein.df$Date_Sampled))
 
 merbein_algae <- Merbein.df %>%
   filter(TAXA =="Algae - Total")
@@ -354,7 +329,9 @@ plot_m2 <- plot(m_aula_discharge)
 plot_m3 <- plot(m_bg_discharge)
 plot_m4 <- plot(m_aphanp_discharge)
 ```
+
 ###Swan Hill - DONE
+
 ```{r}
 Swan_hill.df <- df.combined %>%
   filter(SITENAME == "SWAN HILL")
@@ -365,6 +342,12 @@ max(Swan_hill.df$Date_Sampled)
 Swan_hill.df %>% 
   group_by(TAXA) %>%
   summarise(sum(CELLCOUNT))
+
+
+# swan sum
+swan_sum <- aggregate(x = Swan_hill.df[c("Value", "CELLCOUNT")],
+                   FUN = sum,
+                   by = list(Group.date = Swan_hill.df$Date_Sampled))
 
 swan_algae <- Swan_hill.df %>%
   filter(TAXA =="Algae - Total")
@@ -395,7 +378,9 @@ plot_s2 <- plot(s_aula_discharge)
 plot_s3 <- plot(s_bg_discharge)
 plot_s4 <- plot(s_aphanp_discharge)
 ```
+
 ### Lock 9 - DONE
+
 ```{r}
 Lock9.df <- df.combined %>%
   filter(SITENAME == "LOCK 9")
@@ -407,6 +392,8 @@ Lock9.df %>%
   group_by(TAXA) %>%
   summarise(sum(CELLCOUNT))
 
+
+#l9 sum
 L9sum <- aggregate(x = Lock9.df[c("Value", "CELLCOUNT")],
                    FUN = sum,
                    by = list(Group.date = Lock9.df$Date_Sampled))
@@ -446,7 +433,9 @@ plot_l2 <- plot(l_aula_discharge)
 plot_l3 <- plot(l_bg_discharge)
 plot_l4 <- plot(l_aphanp_discharge)
 ```
+
 ###Balranald - DONE
+
 ```{r}
 Balranald.df <- df.combined %>%
   filter(SITENAME == "BALRANALD")
@@ -457,6 +446,11 @@ max(Balranald.df$Date_Sampled)
 Balranald.df %>% 
   group_by(TAXA) %>%
   summarise(sum(CELLCOUNT))
+
+#balranald sum 
+bal_sum <- aggregate(x = Balranald.df[c("Value", "CELLCOUNT")],
+                   FUN = sum,
+                   by = list(Group.date = Balranald.df$Date_Sampled))
 
 balranald_algae <- Balranald.df %>%
   filter(TAXA =="Algae - Total")
@@ -487,7 +481,9 @@ plot_b2 <- plot(b_aula_discharge)
 plot_b3 <- plot(b_bg_discharge)
 plot_b4 <- plot(b_aphanp_discharge)
 ```
+
 ### Burtrundy - DONE
+
 ```{r}
 Burtundy.df <- df.combined %>%
   filter(SITENAME == "BURTUNDY")
@@ -498,6 +494,12 @@ max(Burtundy.df$Date_Sampled)
 Burtundy.df %>% 
   group_by(TAXA) %>%
   summarise(sum(CELLCOUNT))
+
+# burtundy sum 
+
+bur_sum <- aggregate(x = Burtundy.df[c("Value", "CELLCOUNT")],
+                   FUN = sum,
+                   by = list(Group.date = Burtundy.df$Date_Sampled))
 
 burtundy_algae <- Burtundy.df %>%
   filter(TAXA =="Algae - Total")
@@ -529,24 +531,18 @@ plot_bt3 <- plot(bt_bg_discharge)
 plot_bt4 <- plot(bt_aphanp_discharge)
 ```
 
-### Lock 9 total cyanobacteria arima 
+### First working ARIMA for total c-b Lock 9
+
 ```{r}
 head(L9sum)
-
 total_l9_ts <- ts(log10(L9sum$CELLCOUNT), start = c(1997, 11), frequency = 52)
 total_l9d_ts <- ts(L9sum$Value, start =c(1997, 11), frequency = 52)
-
 par(mfrow = c(1,2))
 plot(total_l9_ts)
 plot(total_l9d_ts)
-
-
 fit1 <- auto.arima(total_l9_ts)
 fit1
 plot(forecast(fit1, h  = 52))
-```
-
-```{r}
 ### making xregs for l9 discharge ... cmon baby 
 
 l9_train = L9sum[1:801,]
@@ -560,29 +556,235 @@ cell_train = ts(log10(l9_train$CELLCOUNT),
 discharge.test = ts(l9_test$Value,
                     frequency = 45,
                     start = c(2015, 06)) # test and train should be 80/20 of the vector 
-cell_test = ts(log10(l9_test$CELLCOUNT), 
+Observed_Results = ts(log10(l9_test$CELLCOUNT), 
                frequency = 45,
                start= c(2015, 06))
-
-l9.arima <- auto.arima(log10(L9sum$CELLCOUNT),
-                   xreg = L9sum$Value) # run arima
-l9.fc <- forecast(l9.arima, 
-                  xreg = rep(10,6), # not sure what rep does...
-                  h = 52) # forecast arima
-plot(l9.fc) # plot forecast 
-
-
 fitrain <- auto.arima(cell_train, 
                       xreg = discharge.train)
 train.fc <- forecast(fitrain,
                      xreg = discharge.test)
 plot(train.fc)
-
-
 # with observed 
+autoplot(train.fc) + autolayer(Observed_Results)
+plot(forecast(auto.arima(log10(L9sum$CELLCOUNT)), 
+              h = 45))
+train.fc
+fitrain
 
-autoplot(train.fc) + autolayer(cell_test)
+# this appears to be a working ARIMA model, with discharge covariates used in forecasting. Model doesnt seem great, infact, pretty bad, but this is to be expected given the range of factors that influence abundance. Discharge is one component (many others nested within)
+```
 
+# ARIMAX forecast - ALL
+Yarrawonga
+```{r}
+# Yarrawonga Sum -ARIMA 
+length(yarra_sum$CELLCOUNT)
+min(yarra_sum$Group.date)
+max(yarra_sum$Group.date)
+yarra_train <- yarra_sum[1:120,]
+yarra_test <- yarra_sum[121:151,]
+y_dc.train <- ts(yarra_train$Value,
+                 frequency = 45,
+                 start = c(2016,7))
+y_cell.train <- ts(log10(yarra_train$CELLCOUNT),
+                   frequency = 45,
+                   start = c(2016,7))
+y_dc.test <- ts(yarra_test$Value,
+                   frequency = 45,
+                   start = c(2019,1))
+Yarrawonga_Observed <- ts(log10(yarra_test$CELLCOUNT),
+                   frequency = 45,
+                   start = c(2018.8))
 
+fit_yarra <- auto.arima(y_cell.train,
+                        xreg = y_dc.train)
+yarra.fc <- forecast(fit_yarra,
+                     xreg = y_dc.test
+                     )
+plot(yarra.fc)
+
+autoplot(yarra.fc) + autolayer(Yarrawonga_Observed)
+
+acf(yarra_sum$CELLCOUNT)
+pacf(yarra_sum$CELLCOUNT)
+
+fitx <- auto.arima(yarra_train$CELLCOUNT)
+plot(forecast(fitx))
+
+```
+Swan Hill
+```{r}
+length(swan_sum$CELLCOUNT)
+min(swan_sum$Group.date)
+max(swan_sum$Group.date)
+swan_train <- swan_sum[1:127,]
+swan_test <- swan_sum[128:159,]
+s_dc.train <- ts(swan_train$Value,
+                 frequency = 45,
+                start =c(2016))
+s_cell.train <- ts(swan_train$CELLCOUNT,
+                   frequency = 45,
+                   start =c(2016))
+s_dc.test <- ts(swan_test$Value,
+                   frequency = 45,
+                   start =c(2018.8))
+SwanHill_Observed <- ts(swan_test$CELLCOUNT,
+                   frequency = 45,
+                   start = c(2018.8))
+
+fit_swanhill <- auto.arima(s_cell.train,
+                        xreg = s_dc.train)
+swanhill.fc <- forecast(fit_swanhill,
+                     xreg = s_dc.test
+                     )
+plot(swanhill.fc)
+
+autoplot(swanhill.fc) + autolayer(SwanHill_Observed)
+
+acf(swan_sum$CELLCOUNT)
+pacf(swan_sum$CELLCOUNT)
+
+fitx <- auto.arima(swan_train$CELLCOUNT)
+plot(forecast(fitx))
+```
+Heywoods
+```{r}
+length(hey_sum$CELLCOUNT)
+min(hey_sum$Group.date)
+max(hey_sum$Group.date)
+hey_train <- hey_sum[1:127,]
+hey_test <- hey_sum[128:159,]
+h_dc.train <- ts(hey_train$Value,
+                 frequency = 45,
+                 )
+h_cell.train <- ts(log10(hey_train$CELLCOUNT),
+                   frequency = 45,
+                   )
+h_dc.test <- ts(hey_test$Value,
+                   frequency = 45,
+                   )
+Heywoods_Observed <- ts(log10(hey_test$CELLCOUNT),
+                   frequency = 45,
+                   start = c(3.8))
+
+fit_heywoods <- auto.arima(h_cell.train,
+                        xreg = h_dc.train)
+heywoods.fc <- forecast(fit_heywoods,
+                     xreg = h_dc.test
+                     )
+plot(heywoods.fc)
+
+autoplot(heywoods.fc) + autolayer(Heywoods_Observed)
+
+acf(hey_sum$CELLCOUNT)
+pacf(hey_sum$CELLCOUNT)
+
+fith <- auto.arima(hey_train$CELLCOUNT)
+plot(forecast(fith))
+```
+Merbein
+```{r}
+length(merb_sum$CELLCOUNT)
+min(merb_sum$Group.date)
+max(merb_sum$Group.date)
+merb_train <- hey_sum[1:115,]
+merb_test <- hey_sum[116:145,]
+m_dc.train <- ts(merb_train$Value,
+                 frequency = 45,
+                 )
+m_cell.train <- ts(log10(merb_train$CELLCOUNT),
+                   frequency = 45,
+                   )
+m_dc.test <- ts(merb_test$Value,
+                   frequency = 45,
+                   )
+Merbein_Observed <- ts(log10(merb_test$CELLCOUNT),
+                   frequency = 45,
+                   start =c(3.54))
+
+fit_Merbein <- auto.arima(m_cell.train,
+                        xreg = m_dc.train)
+merbein.fc <- forecast(fit_Merbein,
+                     xreg = m_dc.test
+                     )
+plot(merbein.fc)
+
+autoplot(merbein.fc) + autolayer(Merbein_Observed)
+
+acf(merb_sum$CELLCOUNT)
+pacf(merb_sum$CELLCOUNT)
+
+fitm <- auto.arima(merb_train$CELLCOUNT)
+plot(forecast(fitm))
+```
+Burtundy
+```{r}
+length(bur_sum$CELLCOUNT)
+min(bur_sum$Group.date)
+max(bur_sum$Group.date)
+bur_train <- bur_sum[1:116,]
+bur_test <- bur_sum[117:147,]
+b_dc.train <- ts(bur_train$Value,
+                 frequency = 45,
+                 )
+b_cell.train <- ts(bur_train$CELLCOUNT,
+                   frequency = 45,
+                   )
+b_dc.test <- ts(bur_test$Value,
+                   frequency = 45,
+                   )
+Burtundy_Observed <- ts(bur_test$CELLCOUNT,
+                   frequency = 45,
+                   start =c(3.59))
+
+fit_Burtundy <- auto.arima(b_cell.train,
+                        xreg = b_dc.train)
+burtundy.fc <- forecast(fit_Burtundy,
+                     xreg = b_dc.test
+                     )
+plot(burtundy.fc)
+
+autoplot(burtundy.fc) + autolayer(Burtundy_Observed)
+
+acf(bur_sum$CELLCOUNT)
+pacf(bur_sum$CELLCOUNT)
+
+fitb <- auto.arima(bur_train$CELLCOUNT)
+plot(forecast(fitb))
+```
+Balranald
+```{r}
+length(bal_sum$CELLCOUNT)
+min(bal_sum$Group.date)
+max(bal_sum$Group.date)
+bal_train <- bal_sum[1:123,]
+bal_test <- bal_sum[124:156,]
+bal_dc.train <- ts(bal_train$Value,
+                 frequency = 45,
+                 )
+bal_cell.train <- ts(bal_train$CELLCOUNT,
+                   frequency = 45,
+                   )
+bal_dc.test <- ts(bal_test$Value,
+                   frequency = 45,
+                   )
+Balranald_Observed <- ts(bal_test$CELLCOUNT,
+                   frequency = 45,
+                   start =c(3.7))
+
+fit_Balranald <- auto.arima(bal_cell.train,
+                        xreg = bal_dc.train)
+Balranald.fc <- forecast(fit_Balranald,
+                     xreg = bal_dc.test
+                     )
+plot(Balranald.fc)
+
+autoplot(Balranald.fc) + autolayer(Balranald_Observed)
+
+acf(bal_sum$CELLCOUNT)
+pacf(bal_sum$CELLCOUNT)
+
+fitbal <- auto.arima(bal_train$CELLCOUNT)
+fitbal1 <-plot(forecast(fitbal))
 ```
 
