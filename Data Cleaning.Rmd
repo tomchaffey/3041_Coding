@@ -22,6 +22,9 @@ library(xts)
 library(dygraphs)
 library(zoo)
 library(tsibble)
+library(gganimate)
+library(viridis)
+library(viridisLite)
 ```
 
 ### Extracting data
@@ -571,6 +574,13 @@ plot(forecast(auto.arima(log10(L9sum$CELLCOUNT)),
 train.fc
 fitrain
 
+autoplot(train.fc) + 
+  autolayer(Observed_Results) +
+  theme_ipsum() + 
+  labs(x = "Date",
+       y = "Log10 Cellcount",
+       title = "ARIMA (0,1,0) Forecast at Lock 9")
+
 # this appears to be a working ARIMA model, with discharge covariates used in forecasting. Model doesnt seem great, infact, pretty bad, but this is to be expected given the range of factors that influence abundance. Discharge is one component (many others nested within)
 ```
 
@@ -603,14 +613,25 @@ yarra.fc <- forecast(fit_yarra,
                      )
 plot(yarra.fc)
 
-autoplot(yarra.fc) + autolayer(Yarrawonga_Observed)
+autoplot(yarra.fc) + 
+  autolayer(Yarrawonga_Observed) +
+  theme_ipsum() +
+  scale_y_log10() +
+  labs(x = "Date",
+       y = "log10 Cellcount",
+       title ="ARIMA (0,1,0) Forecast at Yarrawonga")
 
 acf(yarra_sum$CELLCOUNT)
 pacf(yarra_sum$CELLCOUNT)
 
-fitx <- auto.arima(yarra_train$CELLCOUNT)
-plot(forecast(fitx))
+fity <- auto.arima(yarra_train$CELLCOUNT)
+forecast.y <- forecast(fity)
+plot(forecast.y)
 
+
+
+summary(yarra.fc)
+summary(forecast.y)
 ```
 Swan Hill
 ```{r}
@@ -639,13 +660,26 @@ swanhill.fc <- forecast(fit_swanhill,
                      )
 plot(swanhill.fc)
 
-autoplot(swanhill.fc) + autolayer(SwanHill_Observed)
+autoplot(swanhill.fc) + 
+  autolayer(SwanHill_Observed) + 
+  theme_ipsum() +
+  scale_y_log10() +
+  labs(x = "Date",
+       y = "log10 Cellcount",
+       title = "ARIMA (0,1,1) Forecasts at Yarrawonga")
 
 acf(swan_sum$CELLCOUNT)
 pacf(swan_sum$CELLCOUNT)
 
-fitx <- auto.arima(swan_train$CELLCOUNT)
-plot(forecast(fitx))
+fitsh <- auto.arima(swan_train$CELLCOUNT)
+forecastsh <- forecast(fitsh)
+plot(forecastsh)
+summary(forecastsh)
+
+
+summary(forecastsh)
+summary(swanhill.fc)
+
 ```
 Heywoods
 ```{r}
@@ -657,13 +691,13 @@ hey_test <- hey_sum[128:159,]
 h_dc.train <- ts(hey_train$Value,
                  frequency = 45,
                  )
-h_cell.train <- ts(log10(hey_train$CELLCOUNT),
+h_cell.train <- ts(hey_train$CELLCOUNT,
                    frequency = 45,
                    )
 h_dc.test <- ts(hey_test$Value,
                    frequency = 45,
                    )
-Heywoods_Observed <- ts(log10(hey_test$CELLCOUNT),
+Heywoods_Observed <- ts(hey_test$CELLCOUNT,
                    frequency = 45,
                    start = c(3.8))
 
@@ -674,7 +708,17 @@ heywoods.fc <- forecast(fit_heywoods,
                      )
 plot(heywoods.fc)
 
-autoplot(heywoods.fc) + autolayer(Heywoods_Observed)
+autoplot(heywoods.fc) + 
+  autolayer(Heywoods_Observed)
+
+autoplot(heywoods.fc) + 
+  autolayer(Heywoods_Observed) +
+  theme_ipsum() +
+  scale_y_log10() +
+  labs(x = "Date",
+       y = "log10 Cellcount",
+       title = "ARIMA (0,1,2) Forecasts at Heywood")
+
 
 acf(hey_sum$CELLCOUNT)
 pacf(hey_sum$CELLCOUNT)
@@ -692,13 +736,13 @@ merb_test <- hey_sum[116:145,]
 m_dc.train <- ts(merb_train$Value,
                  frequency = 45,
                  )
-m_cell.train <- ts(log10(merb_train$CELLCOUNT),
+m_cell.train <- ts(merb_train$CELLCOUNT,
                    frequency = 45,
                    )
 m_dc.test <- ts(merb_test$Value,
                    frequency = 45,
                    )
-Merbein_Observed <- ts(log10(merb_test$CELLCOUNT),
+Merbein_Observed <- ts(merb_test$CELLCOUNT,
                    frequency = 45,
                    start =c(3.54))
 
@@ -709,7 +753,13 @@ merbein.fc <- forecast(fit_Merbein,
                      )
 plot(merbein.fc)
 
-autoplot(merbein.fc) + autolayer(Merbein_Observed)
+autoplot(merbein.fc) + 
+  autolayer(Merbein_Observed) +
+  theme_ipsum() +
+  scale_y_log10() +
+  labs(x = "Date",
+       y = "log10 Cellcount",
+       title = "ARIMA (1,1,1,) Forecasts at Merbein")
 
 acf(merb_sum$CELLCOUNT)
 pacf(merb_sum$CELLCOUNT)
@@ -744,7 +794,19 @@ burtundy.fc <- forecast(fit_Burtundy,
                      )
 plot(burtundy.fc)
 
-autoplot(burtundy.fc) + autolayer(Burtundy_Observed)
+autoplot(burtundy.fc) + 
+  autolayer(Burtundy_Observed) +
+  theme_ipsum() +
+  scale_y_log10() +
+  labs(x = "Date",
+       y = "Log10 Cellcount",
+       title = "ARIMA (1,0,3) Forecasts at Burtundy")
+
+  theme_ipsum() +
+  scale_y_log10() +
+  labs(x = "Date",
+       y = "log10 Cellcount",
+       title = "ARIMA (0,1,1) Forecasts at Yarrawonga")
 
 acf(bur_sum$CELLCOUNT)
 pacf(bur_sum$CELLCOUNT)
@@ -779,7 +841,16 @@ Balranald.fc <- forecast(fit_Balranald,
                      )
 plot(Balranald.fc)
 
-autoplot(Balranald.fc) + autolayer(Balranald_Observed)
+autoplot(Balranald.fc) + 
+  autolayer(Balranald_Observed)
+
+autoplot(Balranald.fc) + 
+  autolayer(Balranald_Observed) +
+  theme_ipsum() +
+  scale_y_log10() +
+  labs(x = "Date",
+       y = "Log10 Cellcount",
+       title = "ARIMA (0,1,1) Forecasts at Balranald")
 
 acf(bal_sum$CELLCOUNT)
 pacf(bal_sum$CELLCOUNT)
