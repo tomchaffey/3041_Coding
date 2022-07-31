@@ -25,6 +25,7 @@ library(tsibble)
 library(gganimate)
 library(viridis)
 library(viridisLite)
+library(latticeExtra)
 ```
 
 ### Extracting data
@@ -546,7 +547,10 @@ plot(total_l9d_ts)
 fit1 <- auto.arima(total_l9_ts)
 fit1
 plot(forecast(fit1, h  = 52))
-### making xregs for l9 discharge ... cmon baby 
+lock_cellcount <- xts(L9sum$CELLCOUNT, order.by = L9sum$Group.date)
+lock_discharge <- xts(L9sum$Value, order.by = L9sum$Group.date)
+
+### making xregs for l9 discharge ...
 
 l9_train = L9sum[1:801,]
 l9_test = L9sum[802:1003,]
@@ -581,6 +585,17 @@ autoplot(train.fc) +
        y = "Log10 Cellcount",
        title = "ARIMA (0,1,0) Forecast at Lock 9")
 
+autoplot(lock_cellcount) +
+  labs(x = "Date",
+       y= "Cellcount (cells/mL)",
+       title = "Total Cellcount at Lock 9")+
+  theme_minimal()
+autoplot(lock_discharge) +
+  labs(x = "Date",
+       y = "Dischage [cumec]",
+       title = "Discharge at Lock 9") +
+  theme_minimal()
+
 # this appears to be a working ARIMA model, with discharge covariates used in forecasting. Model doesnt seem great, infact, pretty bad, but this is to be expected given the range of factors that influence abundance. Discharge is one component (many others nested within)
 ```
 
@@ -596,13 +611,13 @@ yarra_test <- yarra_sum[121:151,]
 y_dc.train <- ts(yarra_train$Value,
                  frequency = 45,
                  start = c(2016,7))
-y_cell.train <- ts(log10(yarra_train$CELLCOUNT),
+y_cell.train <- ts(yarra_train$CELLCOUNT,
                    frequency = 45,
                    start = c(2016,7))
 y_dc.test <- ts(yarra_test$Value,
                    frequency = 45,
                    start = c(2019,1))
-Yarrawonga_Observed <- ts(log10(yarra_test$CELLCOUNT),
+Yarrawonga_Observed <- ts(yarra_test$CELLCOUNT,
                    frequency = 45,
                    start = c(2018.8))
 
@@ -615,11 +630,12 @@ plot(yarra.fc)
 
 autoplot(yarra.fc) + 
   autolayer(Yarrawonga_Observed) +
-  theme_ipsum() +
-  scale_y_log10() +
+  theme_minimal() +
   labs(x = "Date",
-       y = "log10 Cellcount",
-       title ="ARIMA (0,1,0) Forecast at Yarrawonga")
+       y = "Cellcount (cells/mL)",
+       title ="ARIMA (0,1,1) Forecast at Yarrawonga",
+       color = "") +
+  annotate("text", x = 2016.5, y = -10000, label = "AICc=88.71")
 
 acf(yarra_sum$CELLCOUNT)
 pacf(yarra_sum$CELLCOUNT)
@@ -640,6 +656,8 @@ min(swan_sum$Group.date)
 max(swan_sum$Group.date)
 swan_train <- swan_sum[1:127,]
 swan_test <- swan_sum[128:159,]
+swan_discharge <- xts(swan_sum$Value, order.by = swan_sum$Group.date)
+swan_cellcount <- xts(swan_sum$CELLCOUNT, order.by = swan_sum$Group.date)
 s_dc.train <- ts(swan_train$Value,
                  frequency = 45,
                 start =c(2016))
@@ -649,7 +667,7 @@ s_cell.train <- ts(swan_train$CELLCOUNT,
 s_dc.test <- ts(swan_test$Value,
                    frequency = 45,
                    start =c(2018.8))
-SwanHill_Observed <- ts(swan_test$CELLCOUNT,
+Observed.Results <- ts(swan_test$CELLCOUNT,
                    frequency = 45,
                    start = c(2018.8))
 
@@ -661,24 +679,43 @@ swanhill.fc <- forecast(fit_swanhill,
 plot(swanhill.fc)
 
 autoplot(swanhill.fc) + 
-  autolayer(SwanHill_Observed) + 
-  theme_ipsum() +
-  scale_y_log10() +
+  autolayer(`"Observed Results"`) + 
+  theme_minimal() +
   labs(x = "Date",
-       y = "log10 Cellcount",
-       title = "ARIMA (0,1,1) Forecasts at Yarrawonga")
+       y = "Cellcount",
+       title = "ARIMA (0,1,1) Forecasts at Swan Hill",
+       color = "") +
+  annotate("text", x = 2016.5, y = -110000, label = "AICc = 3040.04")
+
+autoplot(swanhill.fc) + 
+  autolayer(`"Observed Results"`) + 
+  theme_minimal() +
+  labs(x = "Date",
+       y = "Cellcount",
+       title = "ARIMA (0,1,1) Forecasts at Swan Hill",
+       color = "") +
+  scale_y_log10() +
+  annotate("text", x = 2016.5, y = -110000, label = "AICc = 3040.04")
+
 
 acf(swan_sum$CELLCOUNT)
 pacf(swan_sum$CELLCOUNT)
 
-fitsh <- auto.arima(swan_train$CELLCOUNT)
-forecastsh <- forecast(fitsh)
-plot(forecastsh)
-summary(forecastsh)
 
+autoplot(swan_discharge) +
+  theme_minimal() +
+  labs(x = "Date",
+         y = "Discharge [cumec]",
+         title = "Discharge at Swan Hill")
+autoplot(swan_cellcount) +
+  theme_minimal() +
+  labs(x = "Date",
+         y = "Cellcount",
+         title = "Total Cellcount at Swan Hill")
 
-summary(forecastsh)
 summary(swanhill.fc)
+
+summary(fit_swanhill)
 
 ```
 Heywoods
@@ -690,16 +727,16 @@ hey_train <- hey_sum[1:127,]
 hey_test <- hey_sum[128:159,]
 h_dc.train <- ts(hey_train$Value,
                  frequency = 45,
-                 )
+                 start = c(2016))
 h_cell.train <- ts(hey_train$CELLCOUNT,
                    frequency = 45,
-                   )
+                   start = c(2016))
 h_dc.test <- ts(hey_test$Value,
                    frequency = 45,
-                   )
+                   start = c(2018.8))
 Heywoods_Observed <- ts(hey_test$CELLCOUNT,
                    frequency = 45,
-                   start = c(3.8))
+                   start = c(2018.8))
 
 fit_heywoods <- auto.arima(h_cell.train,
                         xreg = h_dc.train)
@@ -713,15 +750,19 @@ autoplot(heywoods.fc) +
 
 autoplot(heywoods.fc) + 
   autolayer(Heywoods_Observed) +
-  theme_ipsum() +
-  scale_y_log10() +
+  theme_minimal() +
   labs(x = "Date",
-       y = "log10 Cellcount",
-       title = "ARIMA (0,1,2) Forecasts at Heywood")
+       y = "Cellcount (cells/mL)",
+       title = "ARIMA (0,1,2) Forecasts at Heywood",
+       color = "",
+       ) +
+   annotate("text", x = 2019, y = 150000, label = "AICc=2916.95")
 
 
 acf(hey_sum$CELLCOUNT)
 pacf(hey_sum$CELLCOUNT)
+
+summary(heywoods.fc)
 
 fith <- auto.arima(hey_train$CELLCOUNT)
 plot(forecast(fith))
@@ -735,16 +776,16 @@ merb_train <- hey_sum[1:115,]
 merb_test <- hey_sum[116:145,]
 m_dc.train <- ts(merb_train$Value,
                  frequency = 45,
-                 )
+                 , start = c(2016))
 m_cell.train <- ts(merb_train$CELLCOUNT,
                    frequency = 45,
-                   )
+                   start = c(2016))
 m_dc.test <- ts(merb_test$Value,
                    frequency = 45,
-                   )
+                   start = c(2018))
 Merbein_Observed <- ts(merb_test$CELLCOUNT,
                    frequency = 45,
-                   start =c(3.54))
+                   start =c(2018.56))
 
 fit_Merbein <- auto.arima(m_cell.train,
                         xreg = m_dc.train)
@@ -755,17 +796,20 @@ plot(merbein.fc)
 
 autoplot(merbein.fc) + 
   autolayer(Merbein_Observed) +
-  theme_ipsum() +
-  scale_y_log10() +
+  theme_minimal() +
   labs(x = "Date",
-       y = "log10 Cellcount",
-       title = "ARIMA (1,1,1,) Forecasts at Merbein")
+       y = "Cellcount (cells/mL)",
+       title = "ARIMA (0,1,2) Forecasts at Merbein",
+       color = "") +
+  annotate("text", x = 2018.5, y = 150000, label = "AICc=2648.06")
 
 acf(merb_sum$CELLCOUNT)
 pacf(merb_sum$CELLCOUNT)
 
 fitm <- auto.arima(merb_train$CELLCOUNT)
 plot(forecast(fitm))
+
+summary(merbein.fc)
 ```
 Burtundy
 ```{r}
@@ -776,16 +820,16 @@ bur_train <- bur_sum[1:116,]
 bur_test <- bur_sum[117:147,]
 b_dc.train <- ts(bur_train$Value,
                  frequency = 45,
-                 )
+                 start = c(2016))
 b_cell.train <- ts(bur_train$CELLCOUNT,
                    frequency = 45,
-                   )
+                   start = c(2016))
 b_dc.test <- ts(bur_test$Value,
                    frequency = 45,
-                   )
+                   start = c(2018.55))
 Burtundy_Observed <- ts(bur_test$CELLCOUNT,
                    frequency = 45,
-                   start =c(3.59))
+                   start =c(2018.55))
 
 fit_Burtundy <- auto.arima(b_cell.train,
                         xreg = b_dc.train)
@@ -796,23 +840,21 @@ plot(burtundy.fc)
 
 autoplot(burtundy.fc) + 
   autolayer(Burtundy_Observed) +
-  theme_ipsum() +
-  scale_y_log10() +
+  theme_minimal() +
   labs(x = "Date",
-       y = "Log10 Cellcount",
-       title = "ARIMA (1,0,3) Forecasts at Burtundy")
+       y = "Cellcount (cells/mL)",
+       title = "ARIMA (1,0,3) Forecasts at Burtundy",
+       color = "") +
+    annotate("text", x = 2016.5, y = 1000000, label = "AICc=3141.35")
 
-  theme_ipsum() +
-  scale_y_log10() +
-  labs(x = "Date",
-       y = "log10 Cellcount",
-       title = "ARIMA (0,1,1) Forecasts at Yarrawonga")
 
 acf(bur_sum$CELLCOUNT)
 pacf(bur_sum$CELLCOUNT)
 
 fitb <- auto.arima(bur_train$CELLCOUNT)
 plot(forecast(fitb))
+
+summary(burtundy.fc)
 ```
 Balranald
 ```{r}
@@ -823,16 +865,16 @@ bal_train <- bal_sum[1:123,]
 bal_test <- bal_sum[124:156,]
 bal_dc.train <- ts(bal_train$Value,
                  frequency = 45,
-                 )
+                 start = c(2016))
 bal_cell.train <- ts(bal_train$CELLCOUNT,
                    frequency = 45,
-                   )
+                   start = c(2016))
 bal_dc.test <- ts(bal_test$Value,
                    frequency = 45,
-                   )
+                   start = c(2018.7))
 Balranald_Observed <- ts(bal_test$CELLCOUNT,
                    frequency = 45,
-                   start =c(3.7))
+                   start =c(2018.7))
 
 fit_Balranald <- auto.arima(bal_cell.train,
                         xreg = bal_dc.train)
@@ -846,16 +888,21 @@ autoplot(Balranald.fc) +
 
 autoplot(Balranald.fc) + 
   autolayer(Balranald_Observed) +
-  theme_ipsum() +
-  scale_y_log10() +
+  theme_minimal() +
   labs(x = "Date",
-       y = "Log10 Cellcount",
-       title = "ARIMA (0,1,1) Forecasts at Balranald")
+       y = "Cellcount (cells/mL)",
+       title = "ARIMA (0,1,1) Forecasts at Balranald",
+       color = "") +
+      annotate("text", x = 2016.5, y = -100000, label = "AICc=3005.31")
 
 acf(bal_sum$CELLCOUNT)
 pacf(bal_sum$CELLCOUNT)
 
 fitbal <- auto.arima(bal_train$CELLCOUNT)
 fitbal1 <-plot(forecast(fitbal))
+
+summary(Balranald.fc)
 ```
+
+
 
