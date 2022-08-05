@@ -502,6 +502,8 @@ plot_bt4 <- plot(bt_aphanp_discharge)
 
 ### First working ARIMA for total c-b Lock 9
 
+We will be utilising ARIMA modelling to analyse our data set. Firstly, by splitting our site based data in training:testing data, approximately 80:20. ARIMA model is trainned with trainning data, and the forecasts are tested against observed results. This allows us to visuale the strength of our model, the signals produced in conjunction with various summary statistics of the model errors. 
+
 ```{r}
 head(L9sum)
 total_l9_ts <- ts(log10(L9sum$CELLCOUNT), start = c(1997, 11), frequency = 52)
